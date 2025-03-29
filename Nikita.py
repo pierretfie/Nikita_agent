@@ -2,20 +2,22 @@
 
 import subprocess
 import shlex
-import openai
+from openai import OpenAI
 from rich.console import Console
 
 console = Console()
 
-openai.api_key = "YOUR_API_KEY"  # or load from env
+client = OpenAI(api_key="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")
 
 def ai_parser(prompt):
-    response = openai.Completion.create(
-        model="gpt-3.5-turbo-instruct",
-        prompt=f"Convert this user input into a Kali Linux command: {prompt}",
-        max_tokens=100
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that converts user input into Kali Linux commands."},
+            {"role": "user", "content": prompt}
+        ]
     )
-    cmd = response.choices[0].text.strip()
+    cmd = response.choices[0].message.content.strip()
     return cmd
 
 def run_command(cmd):
@@ -28,7 +30,7 @@ def run_command(cmd):
         console.print(f"[red]Error:[/red] {e}")
 
 def main():
-    console.print("[bold green]KaliAI - AI Cyber Assistant[/bold green]")
+    console.print("[bold green]NIKITA - AI Cyber Assistant[/bold green]")
     while True:
         user_input = input("Agent> ").strip()
         if user_input.lower() in ["exit", "quit"]:
