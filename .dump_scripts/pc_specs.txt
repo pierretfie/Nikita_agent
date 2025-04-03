@@ -1,0 +1,57 @@
+Architecture:             x86_64
+  CPU op-mode(s):         32-bit, 64-bit
+  Address sizes:          36 bits physical, 48 bits virtual
+  Byte Order:             Little Endian
+CPU(s):                   4
+  On-line CPU(s) list:    0-3
+Vendor ID:                GenuineIntel
+  Model name:             Intel(R) Core(TM) i5-3320M CPU @ 2.60GHz
+    CPU family:           6
+    Model:                58
+    Thread(s) per core:   2
+    Core(s) per socket:   2
+    Socket(s):            1
+    Stepping:             9
+    CPU(s) scaling MHz:   49%
+    CPU max MHz:          3300.0000
+    CPU min MHz:          1200.0000
+    BogoMIPS:             5188.20
+    Flags:                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm c
+                          onstant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 sss
+                          e3 cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm cpuid_fault epb pti ssbd ibrs ibpb sti
+                          bp tpr_shadow flexpriority ept vpid fsgsbase smep erms xsaveopt dtherm ida arat pln pts vnmi md_clear flush_l1d
+Virtualization features:  
+  Virtualization:         VT-x
+Caches (sum of all):      
+  L1d:                    64 KiB (2 instances)
+  L1i:                    64 KiB (2 instances)
+  L2:                     512 KiB (2 instances)
+  L3:                     3 MiB (1 instance)
+NUMA:                     
+  NUMA node(s):           1
+  NUMA node0 CPU(s):      0-3
+Vulnerabilities:          
+  Gather data sampling:   Not affected
+  Itlb multihit:          KVM: Mitigation: VMX disabled
+  L1tf:                   Mitigation; PTE Inversion; VMX conditional cache flushes, SMT vulnerable
+  Mds:                    Mitigation; Clear CPU buffers; SMT vulnerable
+  Meltdown:               Mitigation; PTI
+  Mmio stale data:        Unknown: No mitigations
+  Reg file data sampling: Not affected
+  Retbleed:               Not affected
+  Spec rstack overflow:   Not affected
+  Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+  Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+  Spectre v2:             Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP conditional; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+  Srbds:                  Vulnerable: No microcode
+  Tsx async abort:        Not affected
+
+
+
+RAM
+
+               total        used        free      shared  buff/cache   available
+Mem:           5.7Gi       1.5Gi       388Mi        31Mi       4.2Gi       4.3Gi
+Swap:          5.9Gi       2.6Gi       3.4Gi
+                                                      
+

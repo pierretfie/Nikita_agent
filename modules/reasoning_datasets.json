@@ -1,0 +1,286 @@
+{
+    "security_concepts": {
+        "attack_techniques": {
+            "reconnaissance": [
+                "port scanning",
+                "service enumeration",
+                "network mapping",
+                "OS fingerprinting",
+                "version detection",
+                "host discovery",
+                "subdomain enumeration",
+                "DNS reconnaissance"
+            ],
+            "exploitation": [
+                "buffer overflow",
+                "SQL injection",
+                "XSS",
+                "CSRF",
+                "file inclusion",
+                "command injection",
+                "deserialization",
+                "template injection"
+            ],
+            "post_exploitation": [
+                "privilege escalation",
+                "persistence",
+                "lateral movement",
+                "data exfiltration",
+                "command and control",
+                "credential harvesting",
+                "network pivoting",
+                "backdoor installation"
+            ]
+        },
+        "defense_mechanisms": {
+            "prevention": [
+                "firewall",
+                "IDS/IPS",
+                "WAF",
+                "antivirus",
+                "encryption",
+                "access control",
+                "input validation",
+                "output encoding"
+            ],
+            "detection": [
+                "log monitoring",
+                "SIEM",
+                "EDR",
+                "network monitoring",
+                "file integrity monitoring",
+                "behavioral analysis",
+                "threat intelligence",
+                "anomaly detection"
+            ],
+            "response": [
+                "incident response",
+                "forensic analysis",
+                "malware analysis",
+                "system hardening",
+                "patch management",
+                "backup and recovery",
+                "disaster recovery",
+                "business continuity"
+            ]
+        }
+    },
+    "technical_terminology": {
+        "networking": {
+            "protocols": [
+                "TCP/IP",
+                "HTTP/HTTPS",
+                "DNS",
+                "SSH",
+                "FTP",
+                "SMTP",
+                "SNMP",
+                "ICMP"
+            ],
+            "concepts": [
+                "subnetting",
+                "routing",
+                "switching",
+                "VLAN",
+                "VPN",
+                "NAT",
+                "DHCP",
+                "ARP"
+            ]
+        },
+        "system": {
+            "components": [
+                "kernel",
+                "process",
+                "thread",
+                "memory",
+                "filesystem",
+                "registry",
+                "service",
+                "daemon"
+            ],
+            "operations": [
+                "boot",
+                "shutdown",
+                "process management",
+                "memory management",
+                "file operations",
+                "user management",
+                "service control",
+                "system monitoring"
+            ]
+        }
+    },
+    "security_tools": {
+        "reconnaissance": {
+            "network": [
+                "nmap",
+                "masscan",
+                "wireshark",
+                "tcpdump",
+                "netcat",
+                "dig",
+                "whois",
+                "traceroute"
+            ],
+            "web": [
+                "gobuster",
+                "dirb",
+                "nikto",
+                "burpsuite",
+                "sqlmap",
+                "wpscan",
+                "joomscan",
+                "acunetix"
+            ]
+        },
+        "exploitation": {
+            "frameworks": [
+                "metasploit",
+                "beef",
+                "empire",
+                "cobalt strike",
+                "powershell empire",
+                "meterpreter",
+                "psexec",
+                "mimikatz"
+            ],
+            "utilities": [
+                "hydra",
+                "hashcat",
+                "john",
+                "aircrack-ng",
+                "responder",
+                "mimikatz",
+                "pwdump",
+                "procdump"
+            ]
+        }
+    },
+    "vulnerability_patterns": {
+        "web": {
+            "injection": [
+                "SQL injection",
+                "command injection",
+                "LDAP injection",
+                "XML injection",
+                "template injection",
+                "code injection",
+                "expression injection",
+                "parameter injection"
+            ],
+            "authentication": [
+                "broken authentication",
+                "session fixation",
+                "password reset",
+                "2FA bypass",
+                "OAuth flaws",
+                "JWT vulnerabilities",
+                "cookie manipulation",
+                "credential stuffing"
+            ]
+        },
+        "system": {
+            "privilege": [
+                "privilege escalation",
+                "sudo abuse",
+                "SUID binaries",
+                "kernel exploits",
+                "service misconfig",
+                "weak permissions",
+                "path traversal",
+                "symlink attacks"
+            ],
+            "memory": [
+                "buffer overflow",
+                "heap overflow",
+                "stack overflow",
+                "format string",
+                "use-after-free",
+                "double free",
+                "integer overflow",
+                "race conditions"
+            ]
+        }
+    },
+    "security_metrics": {
+        "risk_assessment": {
+            "factors": [
+                "asset value",
+                "threat level",
+                "vulnerability severity",
+                "impact potential",
+                "likelihood",
+                "exposure time",
+                "recovery cost",
+                "reputation damage"
+            ],
+            "scoring": {
+                "critical": "9-10",
+                "high": "7-8",
+                "medium": "4-6",
+                "low": "1-3"
+            }
+        },
+        "performance": {
+            "scanning": {
+                "speed": "hosts per second",
+                "accuracy": "false positive rate",
+                "coverage": "target scope",
+                "depth": "scan thoroughness"
+            },
+            "exploitation": {
+                "success_rate": "exploit reliability",
+                "stability": "payload persistence",
+                "stealth": "detection avoidance",
+                "impact": "system compromise"
+            }
+        }
+    },
+    "response_patterns": {
+        "incident": {
+            "phases": [
+                "preparation",
+                "identification",
+                "containment",
+                "eradication",
+                "recovery",
+                "lessons learned",
+                "documentation",
+                "follow-up"
+            ],
+            "actions": [
+                "isolate affected systems",
+                "preserve evidence",
+                "analyze logs",
+                "patch vulnerabilities",
+                "restore services",
+                "update security controls",
+                "conduct post-mortem",
+                "implement improvements"
+            ]
+        },
+        "remediation": {
+            "steps": [
+                "identify root cause",
+                "assess impact",
+                "develop solution",
+                "test fix",
+                "implement changes",
+                "verify resolution",
+                "monitor for recurrence",
+                "update documentation"
+            ],
+            "verification": [
+                "vulnerability scan",
+                "penetration test",
+                "compliance check",
+                "security audit",
+                "performance test",
+                "stability check",
+                "user acceptance",
+                "management approval"
+            ]
+        }
+    }
+}

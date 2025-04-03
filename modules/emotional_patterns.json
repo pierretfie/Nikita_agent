@@ -1,0 +1,334 @@
+{
+    "emotional_indicators": {
+        "frustration": {
+            "high": {
+                "indicators": ["error", "problem", "not working", "failed", "can't", "broken", "useless", "waste", "stupid", "annoying", "terrible", "awful", "horrible", "ridiculous", "impossible"],
+                "context": ["system", "tool", "command", "program", "application", "network", "security", "scan", "attack"],
+                "responses": ["I understand your frustration", "Let's solve this together", "I'll help you resolve this", "I can see why this is frustrating", "Let's tackle this systematically"]
+            },
+            "medium": {
+                "indicators": ["difficult", "hard", "complicated", "confusing", "unclear", "tricky", "challenging", "complex", "overwhelming", "frustrating"],
+                "context": ["process", "method", "approach", "technique", "procedure", "workflow", "strategy"],
+                "responses": ["I can help break this down", "Let's tackle this step by step", "I'll guide you through this", "Let's simplify this together", "I'll help you understand this better"]
+            },
+            "low": {
+                "indicators": ["help", "assist", "guide", "explain", "show", "teach", "learn", "understand", "clarify", "demonstrate"],
+                "context": ["understanding", "knowledge", "learning", "education", "comprehension", "awareness"],
+                "responses": ["I'm here to help", "Let me explain this", "I'll show you how", "I'll help you learn this", "Let's work on this together"]
+            }
+        },
+        "urgency": {
+            "high": {
+                "indicators": ["quick", "fast", "now", "urgent", "asap", "immediately", "critical", "emergency", "hurry", "urgently", "right away", "instant", "priority", "important"],
+                "context": ["system", "security", "threat", "breach", "attack", "vulnerability", "exploit", "compromise", "intrusion"],
+                "responses": ["I'll help you address this quickly", "Let's handle this right away", "I understand the urgency", "I'll prioritize this for you", "Let's resolve this immediately"]
+            },
+            "medium": {
+                "indicators": ["soon", "shortly", "promptly", "quickly", "swiftly", "timely", "efficient", "rapid", "fast", "quick"],
+                "context": ["task", "operation", "process", "workflow", "procedure", "method", "approach"],
+                "responses": ["I'll help you complete this efficiently", "Let's optimize this process", "I'll speed this up", "Let's make this more efficient", "I'll help you streamline this"]
+            },
+            "low": {
+                "indicators": ["when possible", "convenient", "sometime", "later", "eventually", "when you can", "whenever", "in due time", "at your convenience"],
+                "context": ["planning", "scheduling", "coordination", "arrangement", "organization", "preparation"],
+                "responses": ["I'll help you plan this", "Let's schedule this appropriately", "I'll work with your timeline", "Let's organize this effectively", "I'll help you coordinate this"]
+            }
+        },
+        "curiosity": {
+            "high": {
+                "indicators": ["how", "why", "what", "explain", "understand", "learn", "study", "research", "investigate", "analyze", "examine", "explore", "discover", "find out"],
+                "context": ["mechanism", "process", "system", "technology", "methodology", "technique", "approach", "implementation"],
+                "responses": ["I'll explain this in detail", "Let me break this down for you", "I'll help you understand this", "Let's explore this together", "I'll show you how this works"]
+            },
+            "medium": {
+                "indicators": ["interesting", "fascinating", "intriguing", "curious", "wonder", "explore", "fascinating", "captivating", "engaging", "compelling"],
+                "context": ["feature", "capability", "functionality", "possibility", "potential", "opportunity", "aspect"],
+                "responses": ["Let me show you more about this", "I'll help you explore this", "Let's dive deeper into this", "I'll explain this fascinating aspect", "Let's investigate this further"]
+            },
+            "low": {
+                "indicators": ["tell me", "show me", "describe", "explain", "inform", "guide", "demonstrate", "illustrate", "present", "elaborate"],
+                "context": ["information", "knowledge", "understanding", "awareness", "comprehension", "insight"],
+                "responses": ["I'll help you learn about this", "Let me explain this", "I'll guide you through this", "I'll show you how this works", "Let me demonstrate this for you"]
+            }
+        },
+        "concern": {
+            "high": {
+                "indicators": ["worried", "concerned", "afraid", "scared", "nervous", "anxious", "fear", "panic", "terrified", "apprehensive", "distressed", "alarmed"],
+                "context": ["security", "threat", "risk", "vulnerability", "breach", "attack", "compromise", "intrusion", "exploit"],
+                "responses": ["I understand your concern", "Let's address this together", "I'll help you secure this", "I'll help you protect against this", "Let's strengthen your security"]
+            },
+            "medium": {
+                "indicators": ["uncertain", "unsure", "doubtful", "questionable", "skeptical", "hesitant", "suspicious", "cautious", "wary", "careful"],
+                "context": ["decision", "choice", "option", "approach", "method", "strategy", "solution"],
+                "responses": ["Let me help you evaluate this", "I'll help you make an informed decision", "Let's analyze this together", "I'll help you assess this", "Let's review this carefully"]
+            },
+            "low": {
+                "indicators": ["think", "believe", "suppose", "guess", "assume", "consider", "wonder", "ponder", "reflect", "contemplate"],
+                "context": ["possibility", "scenario", "outcome", "result", "consequence", "implication"],
+                "responses": ["Let me help you consider this", "I'll help you think this through", "Let's explore this together", "I'll help you evaluate this", "Let's examine this carefully"]
+            }
+        },
+        "confidence": {
+            "high": {
+                "indicators": ["sure", "certain", "confident", "positive", "definitely", "absolutely", "convinced", "assured", "determined", "resolute"],
+                "context": ["knowledge", "experience", "expertise", "capability", "skill", "proficiency", "mastery"],
+                "responses": ["I appreciate your confidence", "Let's build on your expertise", "I'll help you leverage this", "I'll help you maximize this", "Let's enhance your capabilities"]
+            },
+            "medium": {
+                "indicators": ["likely", "probably", "maybe", "perhaps", "possibly", "might", "could", "potential", "prospective", "promising"],
+                "context": ["possibility", "chance", "probability", "outcome", "potential", "opportunity"],
+                "responses": ["Let's explore this together", "I'll help you evaluate this", "Let's analyze this approach", "I'll help you assess this", "Let's examine this possibility"]
+            },
+            "low": {
+                "indicators": ["unsure", "doubt", "question", "wonder", "think", "guess", "uncertain", "hesitant", "skeptical", "cautious"],
+                "context": ["understanding", "knowledge", "ability", "capability", "skill", "proficiency"],
+                "responses": ["I'll help you build confidence", "Let's work on this together", "I'll guide you through this", "I'll help you develop this", "Let's strengthen your skills"]
+            }
+        },
+        "satisfaction": {
+            "high": {
+                "indicators": ["excellent", "great", "perfect", "amazing", "wonderful", "fantastic", "brilliant", "outstanding", "superb", "exemplary"],
+                "context": ["result", "outcome", "achievement", "success", "accomplishment", "performance"],
+                "responses": ["I'm glad this worked well", "That's excellent progress", "Great job on this", "This is a significant achievement", "You've done very well"]
+            },
+            "medium": {
+                "indicators": ["good", "nice", "fine", "okay", "alright", "satisfactory", "adequate", "decent", "reasonable", "acceptable"],
+                "context": ["progress", "status", "state", "condition", "situation"],
+                "responses": ["This is looking good", "You're making progress", "This is a good start", "Keep up the good work", "You're on the right track"]
+            },
+            "low": {
+                "indicators": ["okay", "fine", "alright", "passable", "adequate", "sufficient", "acceptable", "tolerable", "manageable", "workable"],
+                "context": ["result", "outcome", "performance", "achievement", "accomplishment"],
+                "responses": ["Let's improve this", "We can enhance this", "Let's make this better", "I'll help you optimize this", "Let's refine this further"]
+            }
+        },
+        "determination": {
+            "high": {
+                "indicators": ["must", "will", "shall", "need to", "have to", "going to", "determined", "committed", "resolved", "dedicated"],
+                "context": ["goal", "objective", "target", "aim", "purpose", "mission"],
+                "responses": ["I understand your determination", "Let's achieve this together", "I'll help you reach this goal", "Let's make this happen", "I'll support your efforts"]
+            },
+            "medium": {
+                "indicators": ["want to", "would like", "plan to", "intend to", "aim to", "hope to", "expect to", "looking to", "trying to", "attempting"],
+                "context": ["plan", "strategy", "approach", "method", "technique", "process"],
+                "responses": ["Let's plan this effectively", "I'll help you organize this", "Let's structure this properly", "I'll help you prepare", "Let's set this up correctly"]
+            },
+            "low": {
+                "indicators": ["maybe", "might", "could", "possibly", "perhaps", "consider", "think about", "contemplate", "ponder", "reflect"],
+                "context": ["possibility", "option", "choice", "alternative", "approach"],
+                "responses": ["Let's explore this option", "I'll help you evaluate this", "Let's consider this approach", "I'll help you assess this", "Let's examine this possibility"]
+            }
+        },
+        "content_creator": {
+            "high": {
+                "indicators": ["creator", "youtuber", "instructor", "teacher", "educator", "tutorial", "channel", "content creator", "expert", "specialist"],
+                "context": ["network", "security", "technology", "learning", "education", "cybersecurity", "networking", "programming", "development"],
+                "responses": [
+                    "I understand you're interested in {name}'s educational content. They're known for their expertise in {field}.",
+                    "Yes, {name} is a well-known {field} educator who creates helpful content about {topics}.",
+                    "I'm familiar with {name}'s work in {field}. They create excellent educational content about {topics}."
+                ]
+            },
+            "medium": {
+                "indicators": ["videos", "content", "tutorials", "lessons", "teaching", "courses", "training", "education"],
+                "context": ["learn", "watch", "study", "understand", "follow", "subscribe", "channel"],
+                "responses": [
+                    "Yes, {name} creates educational content about {field}.",
+                    "I know {name}'s work in {field}. They focus on {topics}.",
+                    "You're asking about {name}'s educational content in {field}."
+                ]
+            }
+        }
+    },
+    "style_indicators": {
+        "Educational and supportive": [
+            "how to",
+            "explain",
+            "help me",
+            "guide me",
+            "tutorial",
+            "learn",
+            "understand",
+            "teach me",
+            "demonstrate",
+            "show me",
+            "walk me through",
+            "step by step",
+            "explain it",
+            "help me understand",
+            "can you show"
+        ],
+        "Empathetic and solution-focused": [
+            "error",
+            "problem",
+            "issue",
+            "not working",
+            "failed",
+            "broken",
+            "help me fix",
+            "troubleshoot",
+            "resolve",
+            "fix this",
+            "solve this",
+            "repair",
+            "correct",
+            "address",
+            "handle"
+        ],
+        "Professional and security-focused": [
+            "scan",
+            "attack",
+            "exploit",
+            "vulnerability",
+            "security",
+            "penetration",
+            "pentest",
+            "security assessment",
+            "threat",
+            "risk",
+            "breach",
+            "compromise",
+            "intrusion",
+            "defense",
+            "protection"
+        ],
+        "Technical and detailed": [
+            "configuration",
+            "setup",
+            "install",
+            "configure",
+            "implementation",
+            "architecture",
+            "infrastructure",
+            "deployment",
+            "integration",
+            "optimization",
+            "customization",
+            "automation",
+            "scripting",
+            "programming",
+            "development"
+        ]
+    },
+    "emotional_context": {
+        "sentence_patterns": {
+            "urgency": {
+                "pattern": "(!!+|\\\\.{3,})",
+                "response": "I understand the urgency of this situation"
+            },
+            "frustration": {
+                "pattern": "[A-Z]{3,}",
+                "response": "I understand your frustration. Let's solve this together"
+            },
+            "excitement": {
+                "pattern": "(!|\\?|\\*){2,}",
+                "response": "I share your enthusiasm about this"
+            },
+            "concern": {
+                "pattern": "\\?{2,}",
+                "response": "I understand your concern. Let's address this together"
+            },
+            "determination": {
+                "pattern": "\\!\\?",
+                "response": "I appreciate your determination. Let's work on this together"
+            }
+        },
+        "default": {
+            "emotion": "neutral",
+            "intensity": "low",
+            "context_match": true,
+            "response": "I'm here to help you with this"
+        }
+    },
+    "emotional_analysis": {
+        "compound_emotions": {
+            "frustration_urgency": {
+                "indicators": ["urgent error", "critical problem", "immediate issue", "emergency fix", "urgent fix"],
+                "response": "I understand the urgency and frustration. Let's address this immediately"
+            },
+            "curiosity_concern": {
+                "indicators": ["wonder about security", "concerned about vulnerability", "curious about risk", "interested in threat", "question about safety"],
+                "response": "I understand your interest and concern. Let me help you understand this better"
+            },
+            "confidence_urgency": {
+                "indicators": ["sure about attack", "confident in exploit", "certain about vulnerability", "positive about breach", "definite about threat"],
+                "response": "I appreciate your confidence. Let's proceed with this efficiently"
+            }
+        },
+        "context_analysis": {
+            "security_context": {
+                "indicators": ["security", "threat", "vulnerability", "attack", "breach", "exploit", "compromise", "intrusion", "penetration", "defense"],
+                "weight": 1.5
+            },
+            "technical_context": {
+                "indicators": ["system", "network", "application", "program", "tool", "command", "configuration", "setup", "implementation", "deployment"],
+                "weight": 1.2
+            },
+            "learning_context": {
+                "indicators": ["learn", "understand", "explain", "teach", "guide", "tutorial", "demonstrate", "show", "help", "assist"],
+                "weight": 1.0
+            }
+        },
+        "emotional_flow": {
+            "transition_patterns": {
+                "frustration_to_confidence": {
+                    "indicators": ["but", "however", "although", "yet", "still"],
+                    "response": "I see you're working through this. Let's build on your progress"
+                },
+                "concern_to_curiosity": {
+                    "indicators": ["interesting", "fascinating", "intriguing", "wonder", "explore"],
+                    "response": "I notice your interest growing. Let's explore this together"
+                },
+                "urgency_to_determination": {
+                    "indicators": ["will", "shall", "going to", "plan to", "intend to"],
+                    "response": "I see your determination. Let's focus on achieving this"
+                }
+            }
+        }
+    },
+    "personal_references": {
+        "content_creators": {
+            "patterns": {
+                "name_extraction": [
+                    "(\\w+)\\s+(?:from|in|of)\\s+(?:network|security|tech|cyber)",
+                    "(?:network|security|tech|cyber)\\s+(\\w+)",
+                    "(\\w+)\\s+(?:channel|tutorials|videos|content)"
+                ],
+                "role_indicators": {
+                    "network": ["network", "networking", "infrastructure", "protocols"],
+                    "security": ["security", "cybersecurity", "pentest", "hacking", "social engineering"],
+                    "tech": ["technology", "programming", "development", "coding"],
+                    "general": ["education", "learning", "tutorials", "teaching"]
+                },
+                "validation_rules": {
+                    "network_chuck": {
+                        "name": "Network Chuck",
+                        "real_name": "Chuck Keith",
+                        "platform": "YouTube",
+                        "expertise": ["Networking", "Cybersecurity", "Linux"],
+                        "content_type": "Educational Videos",
+                        "verification_indicators": ["networkchuck", "network chuck", "chuck keith", "network chuck youtube"]
+                    },
+                    "david_bombal": {
+                        "name": "David Bombal",
+                        "platform": "YouTube",
+                        "expertise": ["Networking", "Cisco", "CCNA", "CCNP"],
+                        "content_type": "Educational Videos",
+                        "verification_indicators": ["david bombal", "packet tracer", "ccna", "cisco"]
+                    }
+                }
+            },
+            "response_templates": [
+                "Yes, {name} is a well-known {role} educator who creates engaging content about {topics}.",
+                "I'm familiar with {name}'s work in {field}. They create excellent educational content about {topics}.",
+                "{name} is known for their expertise in {field} and creates helpful content about {topics}."
+            ],
+            "fact_checking": {
+                "enabled": true,
+                "confidence_threshold": 0.8,
+                "verification_sources": ["platform", "expertise", "content_type"],
+                "fallback_response": "I apologize, but I need to verify this information. Could you provide more context about who you're asking about?"
+            }
+        }
+    }
+} 

