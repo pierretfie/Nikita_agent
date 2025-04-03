@@ -106,6 +106,7 @@ Nikita_agent/
 │   ├── context_optimizer.py # Conversation context management
 │   ├── engagement_manager.py # Target and attack phase tracking
 │   ├── fine_tuning.json    # Training data for command suggestions
+│   ├── gpu_manager.py      # GPU resource management & parallel processing
 │   ├── history_manager.py # History and memory management
 │   ├── intent_analyzer.py # Query intent analysis
 │   ├── prompt_template.txt # System prompts and instructions
@@ -172,6 +173,7 @@ The agent is built with a modular architecture for maintainability:
 - **Context Optimization**: Improves responses through context
 - **Reasoning Engine**: Provides structured analysis of security tasks
 - **Engagement Manager**: Tracks targets and attack progression
+- **GPU Management**: Configures and utilizes GPU resources for acceleration
 
 ## Key Components
 

@@ -68,6 +68,12 @@ Manages code-related operations:
 - Code execution
 - Output formatting
 
+### GPU Manager (`gpu_manager.py`)
+Handles GPU resource management and configuration:
+- GPU device detection and initialization
+- Parallel processing setup (e.g., OpenCL)
+- Resource allocation and cleanup
+
 ## Data Files
 
 - `emotional_patterns.json`: Emotional analysis patterns
