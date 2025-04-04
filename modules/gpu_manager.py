@@ -165,6 +165,7 @@ class GPUManager:
                 'vendor': 'NVIDIA',
                 'version': f"CUDA {torch.version.cuda}",
                 'compute_capability': compute_capability,
+                'max_compute_units': device.get_info(cl.device_info.MAX_COMPUTE_UNITS),
                 'multi_processor_count': props.multi_processor_count,
                 'global_mem_size': total_mem,
                 'free_mem_size': free_mem,
