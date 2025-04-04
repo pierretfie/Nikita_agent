@@ -339,7 +339,7 @@ def suppress_output():
 llm = None # Initialize llm to None
 
 # Start stderr suppression before any imports or initialization
-with suppres():
+with suppress_output():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
