@@ -334,6 +334,7 @@ def suppress_stderr():
             sys.stderr = old_stderr
 
 # Initialize model with stderr suppression
+# Initialize model with stderr suppression
 llm = None # Initialize llm to None
 
 # Start stderr suppression before any imports or initialization
@@ -344,40 +345,53 @@ with suppress_stderr():
             # Initialize GPU manager for parallel processing
             gpu_manager = GPUManager()
             gpu_manager.set_suppress_output(True)  # Suppress GPU manager logs
-            gpu_manager.initialize()
-            device_info = gpu_manager.get_device_info()
+            
+            # Initialize GPU manager (can take args like preferred_gpu='nvidia')
+            gpu_init_success = gpu_manager.initialize() 
+            
+            device_info = None # Default to None
+            n_gpu_layers = 0   # Default to CPU-only
+
+            if gpu_init_success:
+                device_info = gpu_manager.get_device_info()
             
             # Check if device_info is valid before accessing keys
             if device_info:
-                power_analysis = is_gpu_powerful(device_info)
+                power_analysis = is_gpu_powerful(device_info) # power_analysis is defined above
                 
+                # Use appropriate settings based on power analysis (example, adjust as needed)
                 if power_analysis['is_powerful']:
-                    # Use more GPU-intensive settings
-                    work_split_ratio = 0.7  # 70% GPU, 30% CPU
-                    tensor_split = [0.3, 0.7]  # More work on GPU
+                    work_split_ratio = 0.7  # Example: More GPU
+                    # tensor_split = [0.3, 0.7] # tensor_split isn't directly used by Llama constructor here
                 else:
-                    # Use more CPU-intensive settings
-                    work_split_ratio = 0.3  # 30% GPU, 70% CPU
-                    tensor_split = [0.7, 0.3]  # More work on CPU
-                
-                # Only print essential GPU info after initialization
+                    work_split_ratio = 0.3  # Example: More CPU
+                    # tensor_split = [0.7, 0.3]
+
+                # Print essential GPU info after initialization
                 console.print(f"[green]⚡ GPU Configuration:[/green]")
-                console.print(f"[green]  • Device: {device_info['name']}[/green]")
-                console.print(f"[green]  • Compute Units: {device_info['max_compute_units']}[/green]")
-                console.print(f"[green]  • Global Memory: {device_info['global_mem_size'] / (1024*1024)/1000:.1f} GB[/green]")
-                console.print(f"[green]  • Parallel Processing: Enabled[/green]")
+                console.print(f"[green]  • Device: {device_info.get('name', 'N/A')}[/green]") # Use .get for safety
+                console.print(f"[green]  • Compute Units: {device_info.get('max_compute_units', 'N/A')}[/green]")
+                mem_gb = device_info.get('global_mem_size', 0) / (1024**3)
+                console.print(f"[green]  • Global Memory: {mem_gb:.1f} GB[/green]")
+                # Removed Parallel Processing print as it's implicit if GPU used
                 
-                # Set n_gpu_layers based on device availability and CUDA compatibility
-                n_gpu_layers = 0  # Default to CPU-only
-                if device_info['gpu_type'] == 'cuda' and device_info['llama_compatible']:
+                # --- CORRECTED SECTION ---
+                # Set n_gpu_layers based on device source and llama compatibility
+                if device_info.get('source') == 'cuda' and device_info.get('llama_compatible', False):
                     # Use GPU for compatible CUDA devices
-                    console.print(f"[green]  • Using GPU acceleration: {device_info['llama_layers_assigned']} layers[/green]")
-                    n_gpu_layers = device_info['llama_layers_assigned']
+                    assigned_layers = device_info.get('llama_layers_assigned', 0)
+                    console.print(f"[green]  • Using GPU acceleration: {assigned_layers if assigned_layers != 0 else 'All'} layers[/green]")
+                    n_gpu_layers = assigned_layers # This will be -1 for "all" or a specific number
+                else:
+                    console.print("[yellow]  • GPU not used for acceleration (Source not CUDA or not Llama compatible).[/yellow]")
+                    n_gpu_layers = 0
+                # --- END CORRECTION ---
+                    
             else:
-                console.print("[yellow]Limited device info available. Using CPU-only mode.[/yellow]")
-                # Set default splits if device info is unavailable
-                work_split_ratio = 0.5
-                tensor_split = [0.5, 0.5]
+                # Handle case where GPU manager init failed or no device found
+                console.print("[yellow]GPU Manager initialization failed or no device found. Using CPU-only mode.[/yellow]")
+                # Set default splits if device info is unavailable (less relevant now)
+                work_split_ratio = 0.0 # No GPU work
                 n_gpu_layers = 0
 
             # Initialize Llama model with verbose=False to minimize logging
@@ -386,28 +400,26 @@ with suppress_stderr():
             
             # Initialize Llama with minimal logging
             llm = Llama(
-
                 model_path=MODEL_PATH,
                 n_ctx=system_params['context_limit'],
-                n_threads=system_params['n_threads'],
-                n_batch=system_params['n_batch'],
-                use_mlock=True,
-                use_mmap=True,
-                low_vram=True,
-                verbose=False,  # Ensure verbose is False
-                f16_kv=True,
+                n_threads=system_params['n_threads'], # Use calculated threads
+                n_batch=system_params['n_batch'],     # Use calculated batch size
+                use_mlock=True,                       # Keep True for performance if RAM allows
+                use_mmap=True,                        # Generally good for loading
+                # low_vram=True, # Only enable if truly low VRAM, can impact performance
+                verbose=False,                        # Ensure verbose is False
+                # f16_kv=True, # Keep True if model supports and helps performance/memory
                 seed=42,
-                embedding=False,
-                rope_scaling={"type": "linear", "factor": 0.25},
-                n_gpu_layers=n_gpu_layers,
-                vocab_only=False,
-                gpu_device=0 if n_gpu_layers > 0 else -1,
-                main_gpu=0,
-                tensor_split=None,
-                gpu_memory_utilization=0.8 if n_gpu_layers > 0 else 0.0,
-                logits_all=False,
-                last_n_tokens_size=32,
-                cache=True
+                embedding=False, # Likely False for chat models
+                # rope_scaling={"type": "linear", "factor": 0.25}, # Only if needed for context > trained length
+                n_gpu_layers=n_gpu_layers,            # Use calculated layers
+                # vocab_only=False, # Keep False for generation
+                # main_gpu=0, # Let llama.cpp decide if n_gpu_layers > 0
+                # tensor_split=None, # Usually let llama.cpp handle this based on n_gpu_layers
+                # gpu_memory_utilization=0.8 if n_gpu_layers != 0 else 0.0, # Let llama.cpp manage if possible
+                # logits_all=False, # Keep False unless needed for specific analysis
+                # last_n_tokens_size=64, # Default is usually fine
+                # cache=True # Llama.cpp manages internal caching
             )
             
             # Prewarm the model AFTER successful initialization
@@ -416,20 +428,27 @@ with suppress_stderr():
             console.print(f"✅ [green] Model prewarmed in {prewarm_duration:.2f} seconds[/green]")
             
             # Verify GPU usage without printing detailed logs
-            if n_gpu_layers > 0:
+            if n_gpu_layers != 0: # Check if we intended to use GPU layers
                 try:
                     if torch.cuda.is_available():
+                        # Small delay to allow memory allocation to potentially settle
+                        time.sleep(0.2) 
                         mem_allocated = torch.cuda.memory_allocated(0) / (1024**2)
-                        mem_reserved = torch.cuda.memory_reserved(0) / (1024**2)
-                        if mem_allocated > 100:
-                            console.print("[green]✅ GPU is actively being used for inference[/green]")
-                except Exception:
-                    pass
+                        # mem_reserved = torch.cuda.memory_reserved(0) / (1024**2) # Reserved is less indicative of active layers
+                        if mem_allocated > 100: # Check if *some* significant memory is allocated
+                            console.print("[green]✅ GPU appears active for inference (memory allocated).[/green]")
+                        else:
+                            console.print("[yellow]⚠️ GPU acceleration intended, but low memory allocated. Check model/driver compatibility.[/yellow]")
+                except Exception as e:
+                    console.print(f"[yellow]Could not verify GPU memory usage: {e}[/yellow]")
 
         except Exception as e:
             console.print(f"[red]Error initializing model or GPU manager: {str(e)}[/red]")
-            if 'gpu_manager' in locals() and gpu_manager is not None:
-                gpu_manager.cleanup()
+            # Use traceback to get more detail if needed:
+            # import traceback
+            # traceback.print_exc() 
+            if 'gpu_manager' in locals() and gpu_manager is not None and gpu_manager.is_initialized():
+                 gpu_manager.cleanup()
             sys.exit(1)
 
 # Initialize model cache
