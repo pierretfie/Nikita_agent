@@ -5,7 +5,6 @@ import subprocess
 import shlex
 import psutil
 from llama_cpp import Llama
-from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 import json
 from datetime import datetime
@@ -50,7 +49,8 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
 
-omport
+from rich.console import Console
+
 console = Console()
 sys.path.insert(0, SCRIPT_DIR)
 console = Console()
