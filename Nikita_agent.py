@@ -35,6 +35,9 @@ PROMPT_TEMPLATE_FILE = os.path.join(SCRIPT_DIR, "modules", "prompt_template.txt"
 FINE_TUNING_FILE = os.path.join(SCRIPT_DIR, "modules", "fine_tuning.json")
 
 # Add the script directory to the Python path
+
+
+from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
 sys.path.insert(0, SCRIPT_DIR)
 console = Console()
 console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
@@ -42,8 +45,6 @@ console.print(f"[bold cyan]└─>[/bold cyan] ", end="")
 user = input().strip()
 print(user)
 from modules.intent_analyzer import IntentAnalyzer
-
-from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
 
 from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
 
