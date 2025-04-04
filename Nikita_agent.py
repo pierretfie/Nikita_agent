@@ -282,8 +282,15 @@ def is_gpu_powerful(device_info):
     # Memory check (in bytes)
     memory_gb = device_info['global_mem_size'] / (1024**3)
     
-    # Special handling for Tesla T4
-    if "Tesla T4" in device_info['name']:
+    # Detect Tesla T4 based on its properties:
+    # - 16GB VRAM
+    # - 40 compute units
+    is_t4 = (
+        abs(memory_gb - 16) < 0.1 and  # 16GB VRAM
+        device_info['max_compute_units'] == 40  # 40 compute units
+    )
+    
+    if is_t4:
         memory_powerful = True  # T4 has 16GB VRAM
         compute_powerful = True  # T4 has 40 compute units
         work_group_powerful = True  # T4 has good work group size

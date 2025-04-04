@@ -188,9 +188,19 @@ class GPUManager:
             # Calculate appropriate layer assignment based on GPU memory
             gpu_memory_gb = device_props.total_memory / (1024**3)
             
-            # Special handling for Tesla T4
-            if "Tesla T4" in device_props.name:
-                # Tesla T4 has 16GB VRAM and 40 compute units
+            # Detect Tesla T4 based on its properties:
+            # - 16GB VRAM
+            # - 40 compute units (SM count)
+            # - Turing architecture
+            is_t4 = (
+                abs(gpu_memory_gb - 16) < 0.1 and  # 16GB VRAM
+                device_props.multi_processor_count == 40 and  # 40 SMs
+                device_props.major == 7 and  # Turing architecture
+                device_props.minor == 5  # T4 specific
+            )
+            
+            if is_t4:
+                # Tesla T4 specific configuration
                 llama_layers = -1  # Use all layers for T4
                 compute_units = 40  # Fixed value for T4
             else:
