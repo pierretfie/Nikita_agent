@@ -466,8 +466,8 @@ def get_cached_response(prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE):
             try:
                 gpu_mem_before = torch.cuda.memory_allocated(0) / (1024**2)  # in MB
             except:
-                pass
-                
+                pass                
+
         # Generate new response with optimized settings
         try:
             output = llm(prompt, 
