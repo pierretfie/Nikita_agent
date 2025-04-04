@@ -366,7 +366,7 @@ with suppress_stderr():
                 console.print(f"[green]⚡ GPU Configuration:[/green]")
                 console.print(f"[green]  • Device: {device_info['name']}[/green]")
                 console.print(f"[green]  • Compute Units: {device_info['max_compute_units']}[/green]")
-                console.print(f"[green]  • Global Memory: {device_info['global_mem_size'] / (1024*1024):.1f} MB[/green]")
+                console.print(f"[green]  • Global Memory: {device_info['global_mem_size'] / (1024*1024)/1000:.1f} GB[/green]")
                 console.print(f"[green]  • Parallel Processing: Enabled[/green]")
                 
                 # Set n_gpu_layers based on device availability and CUDA compatibility
