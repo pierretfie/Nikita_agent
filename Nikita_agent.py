@@ -250,7 +250,11 @@ success, aggressive_mode = optimize_memory_resources()
 
 # Get system parameters
 system_params = get_dynamic_params()
-
+console = Console()
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+user = input().strip()
+print(user)
 # Memory usage statistics - using simplified format
 ram, swap, cpu_count, ram_gb = get_system_info()
 console.print(f"[green]⚙️ RAM Tier: {ram_gb:.1f}GB system | Using {int(system_params['memory_target_gb'])}GB | Target: {system_params['memory_target_pct']:.1f}%[/green]")
