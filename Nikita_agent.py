@@ -14,6 +14,7 @@ import sys
 import warnings
 import contextlib
 import torch
+from rich.console import Console
 
 # Determine the directory of the main script (Nikita_agent.py)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -49,6 +50,12 @@ from modules.engagement_manager import extract_targets, suggest_attack_plan, eng
 from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
+
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+user = input().strip()
+print(user)
+
 
 # Create necessary directories
 os.makedirs(NIKITA_BASE_DIR, exist_ok=True)
