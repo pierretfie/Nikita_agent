@@ -189,12 +189,8 @@ class GPUManager:
             gpu_memory_gb = device_props.total_memory / (1024**3)
             
             # Determine Llama layers assignment based on GPU memory
-            if 'T4' in device_props.name:
-                # For T4 (default in Colab), use all layers
-                llama_layers = -1  # Use all layers (will be interpreted correctly by llama-cpp)
-                self._log(f"Detected Google Colab T4 GPU with {gpu_memory_gb:.1f}GB VRAM")
-                self._log("Setting to use all GPU layers for maximum performance")
-            elif gpu_memory_gb >= 24:
+            
+            if gpu_memory_gb >= 24:
                 # For high-end GPUs with lots of VRAM (A100, etc)
                 llama_layers = -1  # Use all layers
             elif gpu_memory_gb >= 12:
