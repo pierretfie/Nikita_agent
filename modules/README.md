@@ -132,3 +132,23 @@ To add new functionality:
 1. Add new functions to the appropriate module based on function category
 2. For entirely new categories of functionality, create a new module file
 3. Update `__init__.py` if needed to expose the new functionality 
+
+## GPU Setup for Google Colab
+
+When running Nikita Agent in Google Colab, you'll need to properly set up the CUDA-enabled version of llama-cpp-python to utilize the GPU. Follow these steps:
+
+```bash
+# Uninstall current llama-cpp-python
+pip uninstall -y llama-cpp-python
+
+# Install CUDA dependencies
+!apt-get update && apt-get install -y libcublas-dev-11-8 cuda-nvcc-11-8
+
+# Install llama-cpp-python with CUDA support
+!CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python==0.2.6 --no-cache-dir
+
+# Alternative installation command if the above fails
+# !pip install llama-cpp-python-cu11==0.2.6 --extra-index-url=https://pip.repos.neuron.amazonaws.com
+```
+
+After running these commands, restart your Colab kernel before running the Nikita agent code. This ensures the GPU is properly utilized for model inference, significantly improving performance. 

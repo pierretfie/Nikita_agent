@@ -334,9 +334,30 @@ def suppress_stderr():
         finally:
             sys.stderr = old_stderr
 
-# Initialize model with stderr suppression
+# More comprehensive log suppression
+@contextlib.contextmanager
+def suppress_all_output():
+    # Redirect stdout
+    old_stdout = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
+    
+    # Redirect stderr
+    old_stderr = sys.stderr
+    sys.stderr = open(os.devnull, 'w')
+    
+    try:
+        yield
+    finally:
+        # Restore stdout and stderr
+        sys.stdout.close()
+        sys.stderr.close()
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+# Initialize model with complete output suppression
 llm = None # Initialize llm to None
-with suppress_stderr():
+console.print("[cyan]🔄 Initializing model with GPU acceleration (detailed logs suppressed)...[/cyan]")
+with suppress_all_output():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
@@ -377,7 +398,7 @@ with suppress_stderr():
                 tensor_split = [0.5, 0.5]
                 n_gpu_layers = 0
 
-            # Initialize Llama model
+            # Initialize Llama model with enhanced log suppression
             llm = Llama(
                 model_path=MODEL_PATH,
                 n_ctx=system_params['context_limit'],
@@ -387,7 +408,7 @@ with suppress_stderr():
                 use_mlock=True,
                 use_mmap=True,
                 low_vram=True,  # Keep low VRAM mode enabled
-                verbose=False,
+                verbose=False,  # Disable verbose output
                 f16_kv=True,
                 seed=42,
                 embedding=False,
