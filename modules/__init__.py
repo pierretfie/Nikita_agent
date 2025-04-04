@@ -3,7 +3,7 @@ Nikita Agent Modules - Core functionality components
 """
 
 from .code_handler import is_python_code, run_python_code
-from .command_handler import run_command, harden_command, save_command_output
+from .command_handler import run_command, save_command_output
 from .context_optimizer import ContextOptimizer
 from .history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
 from .intent_analyzer import IntentAnalyzer
