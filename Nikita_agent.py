@@ -634,14 +634,14 @@ def main():
 
     while True:
         try:
-            # console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-            # console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+            console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+            console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
 
             # Get user input with readline support (history, editing)
             if history_enabled:
                 user_input = get_input_with_history()
             else:
-                user_input = input().strip()
+                user_input = input().strip().
 
             # Handle empty input by continuing to the next loop iteration
             if not user_input:
