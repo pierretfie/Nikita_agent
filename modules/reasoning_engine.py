@@ -381,10 +381,17 @@ Thought Process:
             else:
                 reasoning["response_strategy"]["follow_up_questions"] = ["How else can I help you with this topic?", "Is there anything specific you'd like to explore further?"]
 
+        # Ensure all follow-up questions in the reasoning dict are strings
+        if "follow_up_questions" in reasoning.get("response_strategy", {}):
+            reasoning["response_strategy"]["follow_up_questions"] = [
+                str(q) for q in reasoning["response_strategy"]["follow_up_questions"]
+            ]
+
         # Combine reasoning components into a single dictionary for the final prompt
         final_reasoning_context = {
              "reasoning": reasoning, # Keep the nested structure
-             "follow_up_questions": reasoning["response_strategy"].get("follow_up_questions", [])
+             # Also ensure top-level follow-ups are strings
+             "follow_up_questions": [str(q) for q in reasoning["response_strategy"].get("follow_up_questions", [])]
         }
 
         return final_reasoning_context

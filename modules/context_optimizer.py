@@ -131,23 +131,27 @@ class ContextOptimizer:
         Generate an optimized prompt for the LLM, incorporating various context elements
         and using caching.
         """
-        # --- Cache Key Generation (Simplified) ---
-        # Use lengths of complex structures and ensure hashable types
-        reasoning_key_part = len(json.dumps(reasoning_context)) if reasoning_context else 0
-        # Ensure all elements in follow_up_questions are strings before tuple conversion
-        follow_up_tuple = tuple(str(q) for q in follow_up_questions) if follow_up_questions else ()
-        follow_up_key_part = hash(follow_up_tuple)
-        intent_key_part = len(json.dumps(intent_analysis_context)) if intent_analysis_context else 0
-        tool_context_key_part = str(tool_context) if tool_context else ""
+        # --- Cache Key Generation (Ultra-Simplified) ---
+        # Use lengths and basic string representations to guarantee hashability
+        key_part_base_prompt = str(base_prompt)
+        key_part_current_task = str(current_task)
+        key_part_chat_len = len(chat_memory)
+        key_part_reasoning_len = len(json.dumps(reasoning_context)) if reasoning_context else 0
+        key_part_followup_len = len(follow_up_questions) if follow_up_questions else 0
+        # Keep a hash of follow-up content for some sensitivity, ensuring strings
+        key_part_followup_content_hash = hash(tuple(str(q) for q in follow_up_questions)) if follow_up_questions else 0
+        key_part_tool_context_str = str(tool_context) if tool_context else ""
+        key_part_intent_len = len(json.dumps(intent_analysis_context)) if intent_analysis_context else 0
 
         cache_key = (
-            base_prompt,
-            current_task,
-            len(chat_memory),
-            reasoning_key_part, # Use length
-            follow_up_key_part, # Use hash of tuple-of-strings
-            tool_context_key_part, # Use simple string
-            intent_key_part # Use length
+            key_part_base_prompt,
+            key_part_current_task,
+            key_part_chat_len,
+            key_part_reasoning_len,
+            key_part_followup_len,
+            key_part_followup_content_hash, # Mix of length and content hash
+            key_part_tool_context_str,
+            key_part_intent_len
         )
 
         # Check cache
