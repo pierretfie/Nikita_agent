@@ -282,22 +282,14 @@ def is_gpu_powerful(device_info):
     # Memory check (in bytes)
     memory_gb = device_info['global_mem_size'] / (1024**3)
     
-    # Detect Tesla T4 based on its properties:
-    # - 16GB VRAM
-    # - 40 compute units
-    is_t4 = (
-        abs(memory_gb - 16) < 0.1 and  # 16GB VRAM
-        device_info['max_compute_units'] == 40  # 40 compute units
-    )
+    # Let PyTorch tell us about the device capabilities
+    compute_units = device_info['max_compute_units']
+    compute_capability = device_info.get('compute_capability', '0.0')
     
-    if is_t4:
-        memory_powerful = True  # T4 has 16GB VRAM
-        compute_powerful = True  # T4 has 40 compute units
-        work_group_powerful = True  # T4 has good work group size
-    else:
-        memory_powerful = memory_gb >= 8  # 8GB or more is considered powerful
-        compute_powerful = device_info['max_compute_units'] >= 16  # 16 or more compute units is powerful
-        work_group_powerful = device_info['max_work_group_size'] >= 256  # 256 or more is powerful
+    # Determine power based on actual capabilities
+    memory_powerful = memory_gb >= 8  # 8GB or more is considered powerful
+    compute_powerful = compute_units >= 16  # 16 or more compute units is powerful
+    work_group_powerful = device_info['max_work_group_size'] >= 256  # 256 or more is powerful
     
     # Overall assessment
     is_powerful = (
@@ -309,8 +301,9 @@ def is_gpu_powerful(device_info):
     return {
         'is_powerful': is_powerful,
         'memory_gb': memory_gb,
-        'compute_units': device_info['max_compute_units'],
+        'compute_units': compute_units,
         'work_group_size': device_info['max_work_group_size'],
+        'compute_capability': compute_capability,
         'details': {
             'memory_powerful': memory_powerful,
             'compute_powerful': compute_powerful,
