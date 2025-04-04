@@ -157,6 +157,7 @@ class GPUManager:
             # Determine Llama compatibility based on memory and compute capability
             # Example thresholds: require >= 6GB and CC >= 6.0
             is_compatible = gpu_memory_gb >= 6 and props.major >= 6
+            max_compute_units = props.multi_processor_count
 
             return {
                 'id': device_id,
@@ -167,6 +168,8 @@ class GPUManager:
                 'compute_capability': compute_capability,
                 'multi_processor_count': props.multi_processor_count,
                 'global_mem_size': total_mem,
+                            max_compute_units = props.multi_processor_count
+
                 'free_mem_size': free_mem,
                 'max_work_group_size': getattr(props, 'maxThreadsPerBlock', 1024), # Common CUDA limit
                 'llama_compatible': is_compatible,
