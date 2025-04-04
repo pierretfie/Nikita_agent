@@ -119,7 +119,7 @@ def get_gpu_details(device_id: int = 0):
 
 def display_info():
     """Gets and displays system and GPU information."""
-    
+
     console.print(Panel("System & Environment Information", style="bold blue", expand=False))
     system_info = get_system_info()
     sys_table = Table(show_header=False, box=None, padding=(0, 2))
@@ -129,7 +129,11 @@ def display_info():
         sys_table.add_row(key, value)
     console.print(sys_table)
 
-    console.print(Panel("GPU Information (Device 0)", style="bold blue", expand=False, margin=(1, 0, 0, 0)))
+    # --- CORRECTED SECTION ---
+    console.print() # Add spacing before the panel
+    console.print(Panel("GPU Information (Device 0)", style="bold blue", expand=False))
+    # --- END CORRECTION ---
+
     gpu_info, workload_or_error = get_gpu_details(device_id=0)
 
     if gpu_info:
@@ -146,10 +150,16 @@ def display_info():
         workload_table = Table(show_header=False, box=None, padding=(0, 2))
         workload_table.add_column("Metric", style="cyan")
         workload_table.add_column("Value", style="green")
-        for key, value in workload_or_error.items(): # Here it's the workload dict
-            workload_table.add_row(key, value)
-        console.print(workload_table)
-        console.print("[dim i]Note: Llama layers heuristic is based on currently free memory and is just a rough guideline.[/dim i]")
+        # Check if workload_or_error is the expected dictionary (not an error string)
+        if isinstance(workload_or_error, dict):
+            for key, value in workload_or_error.items():
+                 workload_table.add_row(key, value)
+            console.print(workload_table)
+            console.print("[dim i]Note: Llama layers heuristic is based on currently free memory and is just a rough guideline.[/dim i]")
+        # This else shouldn't normally be hit if gpu_info was successful, but added for safety
+        else:
+             console.print(f"[yellow]Could not display workload info. Details: {workload_or_error}[/yellow]")
+
 
     else:
         # Display the error message if GPU info retrieval failed
