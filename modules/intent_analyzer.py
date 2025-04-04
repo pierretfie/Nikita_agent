@@ -6,6 +6,33 @@ import time
 import json
 import os
 from functools import lru_cache  # Add caching
+from datetime import datetime
+from typing import Dict, Any, Optional, List, Tuple # Added List, Tuple
+
+# Try to import engagement_manager safely
+try:
+    from .engagement_manager import extract_targets, engagement_memory, get_default_network
+except ImportError:
+    # Handle cases where the module might not be found or is run standalone
+    def extract_targets(text): return []
+    def get_default_network(): return None
+    engagement_memory = {"targets": []}
+
+# Try to import rich for pretty output if available
+try:
+    from rich.console import Console
+    console = Console()
+except ImportError:
+    # Fallback to simple print if rich is not available
+    class FallbackConsole:
+        def print(self, *args, **kwargs):\
+            print(*args)
+    console = FallbackConsole()
+
+
+# Define ChatMemory type hint structure (adjust if different)
+ChatMemoryEntry = Dict[str, Any]
+ChatMemory = List[ChatMemoryEntry]
 
 class IntentAnalyzer:
     def __init__(self, output_dir, system_commands):
@@ -48,7 +75,7 @@ User: "What is X?"
 Assistant: "X is [explanation]. Would you like to see how to [related action]? Just say 'yes' and I'll show you."
 """
 
-    def analyze(self, user_input):
+    def analyze(self, user_input, chat_memory: Optional[ChatMemory] = None):
         """Analyze user input for intent and context"""
         input_lower = user_input.lower()
         
@@ -63,11 +90,11 @@ Assistant: "X is [explanation]. Would you like to see how to [related action]? J
             "technical_context": None,
             "response": None,
             "targets": [],
-            "follow_up_suggestions": []
+            "follow_up_suggestions": [],
+            "answered_context": None
         }
         
         # Extract targets first - this should happen regardless of intent
-        from modules.engagement_manager import extract_targets
         detected_targets = extract_targets(user_input)
         if detected_targets:
             analysis["targets"] = detected_targets
