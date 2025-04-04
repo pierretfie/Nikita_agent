@@ -331,9 +331,13 @@ def suppress_stderr():
         old_stderr = sys.stderr
         sys.stderr = devnull
         try:
+            # Also suppress stdout for llama.cpp
+            old_stdout = sys.stdout
+            sys.stdout = devnull
             yield
         finally:
             sys.stderr = old_stderr
+            sys.stdout = old_stdout
 
 # Initialize model with stderr suppression
 llm = None # Initialize llm to None
@@ -346,6 +350,14 @@ with suppress_stderr():
             # Initialize GPU manager for parallel processing
             gpu_manager = GPUManager()
             gpu_manager.set_suppress_output(True)  # Suppress GPU manager logs
+            
+            # Temporarily disable CUDA logging
+            os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+            os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow logging
+            os.environ['TORCH_CUDA_ARCH_LIST'] = '7.5'  # Suppress PyTorch CUDA arch warnings
+            
+            # Initialize GPU manager
             gpu_manager.initialize()
             device_info = gpu_manager.get_device_info()
             

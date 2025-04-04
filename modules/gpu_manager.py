@@ -12,8 +12,12 @@ import queue
 import torch
 import gc
 import contextlib
+import logging
 
 console = Console()
+
+# Configure logging to be minimal
+logging.getLogger().setLevel(logging.ERROR)
 
 class GPUManager:
     def __init__(self):
@@ -33,6 +37,12 @@ class GPUManager:
         self.opencl_available = True  # Flag to indicate if OpenCL is available
         self.cuda_device_info = None  # Store CUDA device info if OpenCL fails but CUDA is available
         self._suppress_output = False
+        
+        # Suppress CUDA warnings
+        if torch.cuda.is_available():
+            torch.cuda.set_warn_always(False)
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.deterministic = True
         
         # Kernel source for GPU-only operations
         self.kernel_source = """
