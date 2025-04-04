@@ -42,7 +42,7 @@ def get_gpu_info():
     table.add_row("CUDA Version", torch.version.cuda)
     table.add_row("Compute Capability", f"{device_props.major}.{device_props.minor}")
     table.add_row("Multi-Processor Count", str(device_props.multi_processor_count))
-    table.add_row("Max Threads per Multiprocessor", str(device_props.max_threads_per_multiprocessor))
+    table.add_row("Max Threads per Multi-Processor", str(device_props.max_threads_per_multi_processor))
     table.add_row("Max Shared Memory per Block", f"{device_props.shared_mem_per_block / 1024:.1f} KB")
     table.add_row("Total Memory", f"{total_memory / (1024**3):.1f} GB")
     table.add_row("Allocated Memory", f"{mem_allocated / (1024**3):.1f} GB")
