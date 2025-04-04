@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
 import shlex
-import psutil
 from llama_cpp import Llama
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
