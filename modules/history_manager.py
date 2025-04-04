@@ -216,19 +216,7 @@ def get_input_with_history():
         str: User input string
     """
     try:
-        # Check if we're in a Jupyter/Colab environment
-        try:
-            import IPython
-            is_jupyter = IPython.get_ipython() is not None
-        except ImportError:
-            is_jupyter = False
-
-        if is_jupyter:
-            # In Jupyter/Colab, use regular input
-            user_input = input().strip()
-        else:
-            # In regular Python environment, use readline
-            user_input = input().strip()
+        user_input = input().strip()
 
         # Save non-empty commands to history
         if user_input and not user_input.isspace():
