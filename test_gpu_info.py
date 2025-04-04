@@ -1,100 +1,160 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Displays detailed GPU, system, and derived workload information using PyTorch and Rich.
+"""
+
+import platform
 import torch
 import psutil
-import platform
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
 
+# Initialize Rich Console
 console = Console()
 
-def get_gpu_info():
-    """Get detailed GPU information using PyTorch"""
-    if not torch.cuda.is_available():
-        console.print("[red]CUDA is not available. No GPU detected.[/red]")
-        return
+def format_bytes(size_bytes: int, suffix: str = "B") -> str:
+    """Converts bytes to a human-readable format (KB, MB, GB, TB)."""
+    if size_bytes == 0:
+        return "0 B"
+    factor = 1024
+    for unit in ["", "K", "M", "G", "T", "P"]:
+        if size_bytes < factor:
+            return f"{size_bytes:.2f} {unit}{suffix}"
+        size_bytes /= factor
+    return f"{size_bytes:.2f} P{suffix}" # Fallback for very large sizes
 
+def get_system_info():
+    """Gathers basic system and library version information."""
+    info = {
+        "System Platform": platform.platform(),
+        "System Memory": format_bytes(psutil.virtual_memory().total),
+        "Python Version": platform.python_version(),
+        "PyTorch Version": torch.__version__,
+        "CUDA Available": Text("Yes", style="bold green") if torch.cuda.is_available() else Text("No", style="bold red"),
+        "CUDA Version (PyTorch)": getattr(torch.version, 'cuda', "N/A"), # Handles cases where PyTorch is CPU-only build
+    }
+    return info
+
+def get_gpu_details(device_id: int = 0):
+    """Gathers detailed information for a specific CUDA device."""
+    if not torch.cuda.is_available():
+        return None, "CUDA is not available on this system."
+    
     device_count = torch.cuda.device_count()
     if device_count == 0:
-        console.print("[red]No CUDA devices found.[/red]")
-        return
+        return None, "No CUDA-enabled GPUs found."
+    if device_id >= device_count:
+         return None, f"Device ID {device_id} is invalid. Found {device_count} devices (IDs 0 to {device_count-1})."
 
-    # Get properties of the first CUDA device
-    device_props = torch.cuda.get_device_properties(0)
-
-    # Get memory usage
     try:
-        mem_allocated = torch.cuda.memory_allocated(0)
-        mem_reserved = torch.cuda.memory_reserved(0)
-        total_memory = device_props.total_memory
-        utilization = 100.0 * mem_allocated / total_memory if total_memory > 0 else 0.0 # Avoid division by zero
-    except Exception as e: # Catch potential runtime errors more broadly
-        console.print(f"[yellow]Warning: Could not get memory usage: {e}[/yellow]")
-        mem_allocated = 0
-        mem_reserved = 0
-        # Try to get total memory even if allocation fails
-        total_memory = getattr(device_props, 'total_memory', 0)
-        utilization = 0.0
+        props = torch.cuda.get_device_properties(device_id)
+        total_memory = props.total_memory
+        
+        # Get current memory usage (may require GPU context)
+        try:
+            # Briefly allocate something small to ensure context if needed, though get_device_properties usually does this
+            # _ = torch.tensor([1.0], device=device_id) 
+            mem_allocated = torch.cuda.memory_allocated(device_id)
+            mem_reserved = torch.cuda.memory_reserved(device_id) # Often called 'cached' memory by nvidia-smi
+            free_mem, total_mem_driver = torch.cuda.mem_get_info(device_id) # Alternative way via driver
+        except Exception as mem_err:
+            console.print(f"[yellow]Warning:[/yellow] Could not get detailed memory usage for device {device_id}. Error: {mem_err}", style="dim")
+            mem_allocated = 0
+            mem_reserved = 0
+            free_mem = total_memory # Best guess if allocation fails
+            total_mem_driver = total_memory
 
-    # Create a rich table for display
-    table = Table(title="GPU Information")
-    table.add_column("Property", style="cyan")
-    table.add_column("Value", style="green")
+        utilization = (mem_allocated / total_memory * 100) if total_memory > 0 else 0.0
+        free_mem_gb = free_mem / (1024**3)
+        total_mem_gb = total_memory / (1024**3)
 
-    # Add GPU information
-    table.add_row("Device Name", device_props.name)
-    table.add_row("CUDA Version", torch.version.cuda)
-    table.add_row("Compute Capability", f"{device_props.major}.{device_props.minor}")
-    table.add_row("Multi-Processor Count", str(device_props.multi_processor_count))
-    table.add_row("Max Threads per Multi-Processor", str(device_props.max_threads_per_multi_processor))
-    # --- CORRECTED LINE ---
-    table.add_row("Shared Memory per Block", f"{device_props.shared_mem_per_block / 1024:.1f} KB")
-    # --- END CORRECTION ---
-    table.add_row("Total Memory", f"{total_memory / (1024**3):.1f} GB")
-    table.add_row("Allocated Memory", f"{mem_allocated / (1024**3):.1f} GB")
-    table.add_row("Reserved Memory", f"{mem_reserved / (1024**3):.1f} GB")
-    table.add_row("Memory Utilization", f"{utilization:.1f}%")
+        gpu_info = {
+            "Device ID": str(device_id),
+            "Device Name": props.name,
+            "Compute Capability": f"{props.major}.{props.minor}",
+            "Multi-Processor Count": str(props.multi_processor_count),
+            "Total Memory (PyTorch)": format_bytes(total_memory, "B"),
+            "Total Memory (Driver)": format_bytes(total_mem_driver, "B"),
+            "Free Memory (Driver)": format_bytes(free_mem, "B"),
+            "Allocated Memory (PyTorch)": format_bytes(mem_allocated, "B"),
+            "Reserved Memory (PyTorch)": format_bytes(mem_reserved, "B"),
+            "Memory Utilization (Allocated)": f"{utilization:.1f}%",
+            "Shared Memory per Block": format_bytes(props.shared_mem_per_block, "B"),
+            "Max Threads per Multi-Processor": str(props.max_threads_per_multi_processor),
+            "Warp Size": str(props.warp_size),
+        }
 
-    # Add system information
-    table.add_row("System Memory", f"{psutil.virtual_memory().total / (1024**3):.1f} GB")
-    table.add_row("System Platform", platform.platform())
-    table.add_row("Python Version", platform.python_version())
-    table.add_row("PyTorch Version", torch.__version__)
+        # --- Derived Workload Heuristics ---
+        compute_units = props.multi_processor_count
+        max_work_group_size = 1024 # Common default, could refine based on compute capability if needed
 
-    # Print the table
-    console.print(table)
+        # Llama layers heuristic based on *available* memory seems more practical
+        if free_mem_gb >= 14: # Generous buffer for OS/other processes
+             llama_layers = -1 # Suggests using all layers possible
+        elif free_mem_gb >= 10:
+             llama_layers = 32 # Example tier
+        elif free_mem_gb >= 6:
+             llama_layers = 24 # Example tier
+        elif free_mem_gb >= 3:
+             llama_layers = 16 # Example tier
+        else:
+             llama_layers = 8  # Example for very low memory
 
-    # Print additional workload information
-    console.print("\n[bold cyan]Workload Information:[/bold cyan]")
-    workload_table = Table()
-    workload_table.add_column("Metric", style="cyan")
-    workload_table.add_column("Value", style="green")
+        workload_info = {
+            "Compute Units (MPs)": str(compute_units),
+            "Approx. Available Memory": f"{free_mem_gb:.1f} GB",
+            "Suggested Max Work Group Size": str(max_work_group_size),
+            "Heuristic Llama Layers": str(llama_layers),
+        }
+        
+        return gpu_info, workload_info
 
-    # Calculate workload metrics
-    gpu_memory_gb = total_memory / (1024**3) if total_memory > 0 else 0
-    compute_units = device_props.multi_processor_count
+    except Exception as e:
+        return None, f"An error occurred while getting properties for device {device_id}: {e}"
 
-    # Determine max work group size (Simple logic based on original)
-    max_work_group_size = 1024  # Default for most CUDA devices
 
-    # Determine Llama layers (Simple logic based on original)
-    if gpu_memory_gb >= 15: # Simplified logic slightly based on memory only
-        llama_layers = -1  # Use all layers
-    elif gpu_memory_gb >= 12:
-        llama_layers = -1
-    elif gpu_memory_gb >= 8:
-        llama_layers = 32
-    elif gpu_memory_gb >= 4:
-        llama_layers = 24
+def display_info():
+    """Gets and displays system and GPU information."""
+    
+    console.print(Panel("System & Environment Information", style="bold blue", expand=False))
+    system_info = get_system_info()
+    sys_table = Table(show_header=False, box=None, padding=(0, 2))
+    sys_table.add_column("Property", style="cyan")
+    sys_table.add_column("Value", style="green")
+    for key, value in system_info.items():
+        sys_table.add_row(key, value)
+    console.print(sys_table)
+
+    console.print(Panel("GPU Information (Device 0)", style="bold blue", expand=False, margin=(1, 0, 0, 0)))
+    gpu_info, workload_or_error = get_gpu_details(device_id=0)
+
+    if gpu_info:
+        # GPU Details Table
+        gpu_table = Table(show_header=False, box=None, padding=(0, 2))
+        gpu_table.add_column("Property", style="cyan")
+        gpu_table.add_column("Value", style="green")
+        for key, value in gpu_info.items():
+            gpu_table.add_row(key, value)
+        console.print(gpu_table)
+
+        # Workload Heuristics Table
+        console.print("\n[bold cyan]Derived Workload Heuristics:[/bold cyan]")
+        workload_table = Table(show_header=False, box=None, padding=(0, 2))
+        workload_table.add_column("Metric", style="cyan")
+        workload_table.add_column("Value", style="green")
+        for key, value in workload_or_error.items(): # Here it's the workload dict
+            workload_table.add_row(key, value)
+        console.print(workload_table)
+        console.print("[dim i]Note: Llama layers heuristic is based on currently free memory and is just a rough guideline.[/dim i]")
+
     else:
-        llama_layers = 16
+        # Display the error message if GPU info retrieval failed
+        console.print(f"[bold red]Error:[/bold red] {workload_or_error}")
 
-    workload_table.add_row("Max Work Group Size", str(max_work_group_size))
-    workload_table.add_row("Assigned Llama Layers", str(llama_layers))
-    workload_table.add_row("Compute Units", str(compute_units))
-    workload_table.add_row("Memory Available for Workload", f"{gpu_memory_gb:.1f} GB")
-
-    console.print(workload_table)
 
 if __name__ == "__main__":
-    get_gpu_info()
-
-# --- END OF FILE test_gpu_info.py --- # (Marker, not part of the code)
+    display_info()
