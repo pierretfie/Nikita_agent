@@ -117,7 +117,7 @@ class GPUManager:
     def _check_llama_compatibility(self):
         """Check if the GPU is compatible with Llama"""
         console.print('HELLO')
-        console.print(self.gpu_type)
+        console.print(self.g)
         try:
             # Check if PyTorch is available and CUDA is supported
             if not torch.cuda.is_available():
