@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
 
-# Get user input before any imports
-import sys
-print("\n┌──(SUDO)")
-print("└─> ", end="")
-user = input().strip()
-print(f"Username: {user}")
-
-# Now import everything else
 import os
 import shlex
 from llama_cpp import Llama
@@ -18,11 +10,11 @@ from datetime import datetime
 from pathlib import Path
 import re
 import time
+import sys
 import warnings
 import contextlib
 import torch
 from rich.console import Console
-import getpass  # Import getpass for password input
 
 # Determine the directory of the main script (Nikita_agent.py)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -45,12 +37,7 @@ FINE_TUNING_FILE = os.path.join(SCRIPT_DIR, "modules", "fine_tuning.json")
 sys.path.insert(0, SCRIPT_DIR)
 
 console = Console()
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user_input = input().strip()  # This will now work normally since readline is configured after the first input
-console.print(f"[green]Input received: {user_input}[/green]")
 
-# Import all required modules
 from modules.intent_analyzer import IntentAnalyzer
 from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
 from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
@@ -61,10 +48,8 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
 
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-password = getpass.getpass()  # Use getpass for password input
-console.print("[green]Password accepted[/green]")
+
+
 
 # Create necessary directories
 os.makedirs(NIKITA_BASE_DIR, exist_ok=True)
