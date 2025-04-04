@@ -322,7 +322,11 @@ except FileNotFoundError:
 except Exception as e:
     console.print(f"[yellow]Could not load prompt template: {e}[/yellow]")
     PROMPT_TEMPLATE = "You are a helpful AI assistant."  # Default prompt
-
+console = Console()
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+user = input().strip()
+print(user)
 # Create a context manager to redirect stderr
 @contextlib.contextmanager
 def suppress_stderr():
@@ -385,11 +389,7 @@ with suppress_stderr():
             # Initialize Llama model with verbose=False to minimize logging
             # Set environment variable to suppress llama.cpp logs
             os.environ['LLAMA_CPP_LOG_LEVEL'] = '-1'
-            console = Console()
-            console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-            console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-            user = input().strip()
-            print(user)
+            
             # Initialize Llama with minimal logging
             llm = Llama(
 
