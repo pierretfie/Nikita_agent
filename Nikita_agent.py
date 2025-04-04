@@ -5,6 +5,7 @@ import subprocess
 import shlex
 import psutil
 from llama_cpp import Llama
+from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 import json
 from datetime import datetime
@@ -34,14 +35,10 @@ PROMPT_TEMPLATE_FILE = os.path.join(SCRIPT_DIR, "modules", "prompt_template.txt"
 FINE_TUNING_FILE = os.path.join(SCRIPT_DIR, "modules", "fine_tuning.json")
 
 # Add the script directory to the Python path
-
-
-from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
-
+sys.path.insert(0, SCRIPT_DIR)
 from modules.intent_analyzer import IntentAnalyzer
-
+from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
 from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
-
 from modules.context_optimizer import ContextOptimizer
 from modules.command_handler import run_command
 from modules.engagement_manager import extract_targets, suggest_attack_plan, engagement_memory
@@ -49,15 +46,9 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
 
-from rich.console import Console
 
 console = Console()
-sys.path.insert(0, SCRIPT_DIR)
-console = Console()
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
-print(user)
+
 # Create necessary directories
 os.makedirs(NIKITA_BASE_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
