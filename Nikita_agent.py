@@ -249,198 +249,31 @@ engagement_memory = {
 # === Model Setup ===
 console.print("🧠 [bold red]Waking Nikita 🐺...[/bold red]")
 
+# Optimize system resources
+success, aggressive_mode = optimize_memory_resources()
+
+# Get system parameters
+system_params = get_dynamic_params()
+
+# Memory usage statistics - using simplified format
+ram, swap, cpu_count, ram_gb = get_system_info()
+console.print(f"[green]⚙️ RAM Tier: {ram_gb:.1f}GB system | Using {int(system_params['memory_target_gb'])}GB | Target: {system_params['memory_target_pct']:.1f}%[/green]")
+console.print(f"[green]📊 Current usage: {ram.used/1024/1024/1024:.1f}GB ({ram.percent:.1f}%) | Context: {system_params['context_limit']} tokens | Batch: {system_params['n_batch']}[/green]")
+
+# Display memory optimization status if used aggressive mode
+if aggressive_mode:
+    console.print("💫 [green]Aggressive memory optimization activated[/green] ")
+
+# Apply CPU optimizations
+success, target_cores, current_load = optimize_cpu_usage()
+console.print(f"[green]⚡ CPU affinity set to use {target_cores} cores based on current load ({current_load:.2f})[/green]  ")
+
+# Ensure mlock is enabled for RAM optimization
 try:
-    # Optimize system resources
-    success, aggressive_mode = optimize_memory_resources()
-    if not success:
-        console.print("[yellow]Warning: Memory optimization may not be optimal[/yellow]")
-
-    # Get system parameters
-    system_params = get_dynamic_params()
-    if not system_params:
-        console.print("[red]Error: Failed to get system parameters[/red]")
-        sys.exit(1)
-
-    # Memory usage statistics - using simplified format
-    ram, swap, cpu_count, ram_gb = get_system_info()
-    if not all([ram, swap, cpu_count, ram_gb]):
-        console.print("[red]Error: Failed to get system info[/red]")
-        sys.exit(1)
-
-    console.print(f"[green]⚙️ RAM Tier: {ram_gb:.1f}GB system | Using {int(system_params['memory_target_gb'])}GB | Target: {system_params['memory_target_pct']:.1f}%[/green]")
-    console.print(f"[green]📊 Current usage: {ram.used/1024/1024/1024:.1f}GB ({ram.percent:.1f}%) | Context: {system_params['context_limit']} tokens | Batch: {system_params['n_batch']}[/green]")
-
-    # Display memory optimization status if used aggressive mode
-    if aggressive_mode:
-        console.print("💫 [green]Aggressive memory optimization activated[/green] ")
-
-    # Apply CPU optimizations
-    success, target_cores, current_load = optimize_cpu_usage()
-    if not success:
-        console.print("[yellow]Warning: CPU optimization may not be optimal[/yellow]")
-    console.print(f"[green]⚡ CPU affinity set to use {target_cores} cores based on current load ({current_load:.2f})[/green]  ")
-
-    # Ensure mlock is enabled for RAM optimization
-    try:
-        import resource
-        resource.setrlimit(resource.RLIMIT_MEMLOCK, (-1, -1))
-    except Exception as e:
-        console.print(f"[yellow]Warning: Could not set mlock: {e}[/yellow]")
-
-    # Verify model file exists
-    if not os.path.exists(MODEL_PATH):
-        console.print(f"[red]Error: Model file not found at {MODEL_PATH}[/red]")
-        sys.exit(1)
-
-    # Initialize model with stderr suppression
-    llm = None
-    gpu_manager = None
-
-    # Start stderr suppression before any GPU/LLM initialization
-    with suppress_stderr():
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            try:
-                # Initialize GPU manager for parallel processing
-                console.print("[cyan]Initializing GPU manager...[/cyan]")
-                gpu_manager = GPUManager()
-                gpu_manager.set_suppress_output(True)  # Suppress GPU manager logs
-                
-                # Temporarily disable CUDA logging
-                os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-                os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-                os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow logging
-                os.environ['TORCH_CUDA_ARCH_LIST'] = '7.5'  # Suppress PyTorch CUDA arch warnings
-                
-                # Initialize GPU manager
-                if not gpu_manager.initialize():
-                    console.print("[yellow]Warning: GPU initialization failed, falling back to CPU mode[/yellow]")
-                
-                device_info = gpu_manager.get_device_info()
-                
-                # Check if device_info is valid before accessing keys
-                if device_info:
-                    power_analysis = is_gpu_powerful(device_info)
-                    
-                    if power_analysis['is_powerful']:
-                        # Use more GPU-intensive settings
-                        work_split_ratio = 0.7  # 70% GPU, 30% CPU
-                        tensor_split = [0.3, 0.7]  # More work on GPU
-                    else:
-                        # Use more CPU-intensive settings
-                        work_split_ratio = 0.3  # 30% GPU, 70% CPU
-                        tensor_split = [0.7, 0.3]  # More work on CPU
-                    
-                    # Only print essential GPU info after initialization
-                    console.print(f"[green]⚡ GPU Configuration:[/green]")
-                    console.print(f"[green]  • Device: {device_info['name']}[/green]")
-                    console.print(f"[green]  • Compute Units: {device_info['max_compute_units']}[/green]")
-                    console.print(f"[green]  • Global Memory: {device_info['global_mem_size'] / (1024*1024):.1f} MB[/green]")
-                    console.print(f"[green]  • Parallel Processing: Enabled[/green]")
-                    
-                    # Set n_gpu_layers based on device availability and CUDA compatibility
-                    n_gpu_layers = 0  # Default to CPU-only
-                    if device_info['gpu_type'] == 'cuda' and device_info['llama_compatible']:
-                        console.print(f"[green]  • Using GPU acceleration: {device_info['llama_layers_assigned']} layers[/green]")
-                        n_gpu_layers = device_info['llama_layers_assigned']
-                else:
-                    console.print("[yellow]Limited device info available. Using CPU-only mode.[/yellow]")
-                    # Set default splits if device info is unavailable
-                    work_split_ratio = 0.5
-                    tensor_split = [0.5, 0.5]
-                    n_gpu_layers = 0
-
-                # Initialize Llama model with verbose=False to minimize logging
-                console.print("[cyan]Initializing Llama model...[/cyan]")
-                llm = Llama(
-                    model_path=MODEL_PATH,
-                    n_ctx=system_params['context_limit'],
-                    n_threads=system_params['n_threads'],
-                    n_batch=system_params['n_batch'],
-                    use_mlock=True,
-                    use_mmap=True,
-                    low_vram=True,
-                    verbose=False,  # Ensure verbose is False
-                    f16_kv=True,
-                    seed=42,
-                    embedding=False,
-                    rope_scaling={"type": "linear", "factor": 0.25},
-                    n_gpu_layers=n_gpu_layers,
-                    vocab_only=False,
-                    gpu_device=0 if n_gpu_layers > 0 else -1,
-                    main_gpu=0,
-                    tensor_split=None,
-                    gpu_memory_utilization=0.8 if n_gpu_layers > 0 else 0.0,
-                    logits_all=False,
-                    last_n_tokens_size=32,
-                    cache=True
-                )
-                
-                # Prewarm the model AFTER successful initialization
-                console.print("[cyan]🔥 Prewarming model...[/cyan]")
-                prewarm_duration = prewarm_model(llm, base_prompt="You are Nikita, an AI Security Assistant.")
-                console.print(f"✅ [green] Model prewarmed in {prewarm_duration:.2f} seconds[/green]")
-                
-                # Verify GPU usage without printing detailed logs
-                if n_gpu_layers > 0:
-                    try:
-                        if torch.cuda.is_available():
-                            mem_allocated = torch.cuda.memory_allocated(0) / (1024**2)
-                            mem_reserved = torch.cuda.memory_reserved(0) / (1024**2)
-                            if mem_allocated > 100:
-                                console.print("[green]✅ GPU is actively being used for inference[/green]")
-                    except Exception as e:
-                        console.print(f"[yellow]Warning: Could not verify GPU usage: {e}[/yellow]")
-
-            except Exception as e:
-                console.print(f"[red]Error during initialization: {str(e)}[/red]")
-                if gpu_manager:
-                    gpu_manager.cleanup()
-                if llm:
-                    try:
-                        llm.close()
-                    except:
-                        pass
-                sys.exit(1)
-
-except Exception as e:
-    console.print(f"[red]Fatal error during setup: {str(e)}[/red]")
-    sys.exit(1)
-
-# Initialize model cache
-MODEL_CACHE = {}
-
-# Initialize fine tuning knowledge
-try:
-    fine_tuning = FinetuningKnowledge()
-except Exception as e:
-    console.print(f"[yellow]Warning: Failed to initialize fine-tuning knowledge: {e}[/yellow]")
-    fine_tuning = None
-
-# Initialize system commands
-try:
-    system_commands, categorized_commands = discover_system_commands()
-except Exception as e:
-    console.print(f"[yellow]Warning: Failed to initialize system commands: {e}[/yellow]")
-    system_commands = {}
-    categorized_commands = {}
-
-# Initialize intent analyzer
-try:
-    intent_analyzer = IntentAnalyzer(OUTPUT_DIR, system_commands)
-except Exception as e:
-    console.print(f"[red]Error initializing intent analyzer: {e}[/red]")
-    sys.exit(1)
-
-# Initialize context optimizer
-try:
-    context_optimizer = ContextOptimizer(
-        max_tokens=system_params['context_limit'],
-        reserve_tokens=system_params['max_tokens']
-    )
-except Exception as e:
-    console.print(f"[red]Error initializing context optimizer: {e}[/red]")
-    sys.exit(1)
+    import resource
+    resource.setrlimit(resource.RLIMIT_MEMLOCK, (-1, -1))
+except:
+    pass
 
 # === GPU Power Check Function ===
 def is_gpu_powerful(device_info):
@@ -498,13 +331,9 @@ def suppress_stderr():
         old_stderr = sys.stderr
         sys.stderr = devnull
         try:
-            # Also suppress stdout for llama.cpp
-            old_stdout = sys.stdout
-            sys.stdout = devnull
             yield
         finally:
             sys.stderr = old_stderr
-            sys.stdout = old_stdout
 
 # Initialize model with stderr suppression
 llm = None # Initialize llm to None
@@ -517,14 +346,6 @@ with suppress_stderr():
             # Initialize GPU manager for parallel processing
             gpu_manager = GPUManager()
             gpu_manager.set_suppress_output(True)  # Suppress GPU manager logs
-            
-            # Temporarily disable CUDA logging
-            os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-            os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow logging
-            os.environ['TORCH_CUDA_ARCH_LIST'] = '7.5'  # Suppress PyTorch CUDA arch warnings
-            
-            # Initialize GPU manager
             gpu_manager.initialize()
             device_info = gpu_manager.get_device_info()
             
