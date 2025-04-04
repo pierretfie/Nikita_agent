@@ -395,7 +395,7 @@ with suppress_stderr():
                 use_mlock=True,
                 use_mmap=True,
                 low_vram=True,
-                verbose=True,  # Ensure verbose is False
+                verbose=False,  # Ensure verbose is False
                 f16_kv=True,
                 seed=42,
                 embedding=False,
