@@ -2,8 +2,6 @@ import os
 import psutil
 from rich.console import Console
 import time
-import sys
-import contextlib
 
 console = Console()
 
@@ -152,28 +150,6 @@ def prewarm_model(llm, base_prompt="You are an AI assistant", spinner_style="dot
         timer_running = True
         import threading
         
-        # Create a context manager to suppress stdout and stderr
-        @contextlib.contextmanager
-        def suppress_output():
-            # Save original stdout and stderr
-            old_stdout = sys.stdout
-            old_stderr = sys.stderr
-            
-            # Open null device for redirection
-            null_device = open(os.devnull, 'w')
-            
-            # Redirect stdout and stderr to null device
-            sys.stdout = null_device
-            sys.stderr = null_device
-            
-            try:
-                yield
-            finally:
-                # Restore stdout and stderr
-                sys.stdout = old_stdout
-                sys.stderr = old_stderr
-                null_device.close()
-        
         # Use Rich's built-in spinner with live updating clock
         with console.status("[bold red]🔥[/bold red] Prewarming model...", spinner=spinner_style) as status:
             def continuous_timer():
@@ -187,9 +163,8 @@ def prewarm_model(llm, base_prompt="You are an AI assistant", spinner_style="dot
             timer_thread.start()
             
             try:
-                # Run inference with minimal tokens and suppress output
-                with suppress_output():
-                    _ = llm(base_prompt, max_tokens=1)
+                # Run inference with minimal tokens
+                _ = llm(base_prompt, max_tokens=1)
             except Exception as e:
                 console.print(f"[yellow]Model prewarming failed: {e}[/yellow]")
                 return 0

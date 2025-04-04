@@ -326,6 +326,7 @@ except Exception as e:
 # Create a context manager to redirect stderr
 @contextlib.contextmanager
 def suppress_stderr():
+    """Context manager to suppress stderr output"""
     with open(os.devnull, 'w') as devnull:
         old_stderr = sys.stderr
         sys.stderr = devnull
@@ -334,30 +335,11 @@ def suppress_stderr():
         finally:
             sys.stderr = old_stderr
 
-# More comprehensive log suppression
-@contextlib.contextmanager
-def suppress_all_output():
-    # Redirect stdout
-    old_stdout = sys.stdout
-    sys.stdout = open(os.devnull, 'w')
-    
-    # Redirect stderr
-    old_stderr = sys.stderr
-    sys.stderr = open(os.devnull, 'w')
-    
-    try:
-        yield
-    finally:
-        # Restore stdout and stderr
-        sys.stdout.close()
-        sys.stderr.close()
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-
-# Initialize model with complete output suppression
+# Initialize model with stderr suppression
 llm = None # Initialize llm to None
-console.print("[cyan]🔄 Initializing model with GPU acceleration (detailed logs suppressed)...[/cyan]")
-with suppress_all_output():
+
+# Start stderr suppression before any GPU/LLM initialization
+with suppress_stderr():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
@@ -365,6 +347,7 @@ with suppress_all_output():
             gpu_manager = GPUManager()
             gpu_manager.initialize()
             device_info = gpu_manager.get_device_info()
+            
             # Check if device_info is valid before accessing keys
             if device_info:
                 power_analysis = is_gpu_powerful(device_info)
@@ -378,11 +361,11 @@ with suppress_all_output():
                     work_split_ratio = 0.3  # 30% GPU, 70% CPU
                     tensor_split = [0.7, 0.3]  # More work on CPU
                 
-                console.print(f"[green]⚡ Parallel Processing Configuration:[/green]")
+                # Only print essential GPU info after initialization
+                console.print(f"[green]⚡ GPU Configuration:[/green]")
                 console.print(f"[green]  • Device: {device_info['name']}[/green]")
                 console.print(f"[green]  • Compute Units: {device_info['max_compute_units']}[/green]")
                 console.print(f"[green]  • Global Memory: {device_info['global_mem_size'] / (1024*1024):.1f} MB[/green]")
-                console.print(f"[green]  • Max Work Group Size: {device_info['max_work_group_size']}[/green]")
                 console.print(f"[green]  • Parallel Processing: Enabled[/green]")
                 
                 # Set n_gpu_layers based on device availability and CUDA compatibility
@@ -398,28 +381,26 @@ with suppress_all_output():
                 tensor_split = [0.5, 0.5]
                 n_gpu_layers = 0
 
-            # Initialize Llama model with enhanced log suppression
+            # Initialize Llama model with verbose=False to minimize logging
             llm = Llama(
                 model_path=MODEL_PATH,
                 n_ctx=system_params['context_limit'],
-                n_threads=system_params['n_threads'], # Use all dynamic threads for CPU
+                n_threads=system_params['n_threads'],
                 n_batch=system_params['n_batch'],
-                # max_tokens=system_params['max_tokens'], # max_tokens is set during generation, not init
                 use_mlock=True,
                 use_mmap=True,
-                low_vram=True,  # Keep low VRAM mode enabled
-                verbose=False,  # Disable verbose output
+                low_vram=True,
+                verbose=False,  # Ensure verbose is False
                 f16_kv=True,
                 seed=42,
                 embedding=False,
                 rope_scaling={"type": "linear", "factor": 0.25},
-                n_gpu_layers=n_gpu_layers,  # Use n_gpu_layers from GPU detection
+                n_gpu_layers=n_gpu_layers,
                 vocab_only=False,
-                # Add necessary CUDA parameters when using GPU
-                gpu_device=0 if n_gpu_layers > 0 else -1,  # Use GPU 0 if layers assigned
+                gpu_device=0 if n_gpu_layers > 0 else -1,
                 main_gpu=0,
-                tensor_split=None,  # Let llama.cpp determine the best split
-                gpu_memory_utilization=0.8 if n_gpu_layers > 0 else 0.0,  # Use 80% of GPU memory
+                tensor_split=None,
+                gpu_memory_utilization=0.8 if n_gpu_layers > 0 else 0.0,
                 logits_all=False,
                 last_n_tokens_size=32,
                 cache=True
@@ -430,24 +411,19 @@ with suppress_all_output():
             prewarm_duration = prewarm_model(llm, base_prompt="You are Nikita, an AI Security Assistant.")
             console.print(f"✅ [green] Model prewarmed in {prewarm_duration:.2f} seconds[/green]")
             
-            # Verify GPU usage
+            # Verify GPU usage without printing detailed logs
             if n_gpu_layers > 0:
                 try:
-                    # Check if GPU memory is being used
                     if torch.cuda.is_available():
-                        mem_allocated = torch.cuda.memory_allocated(0) / (1024**2)  # in MB
-                        mem_reserved = torch.cuda.memory_reserved(0) / (1024**2)  # in MB
-                        console.print(f"[green]✅ GPU Memory in use: {mem_allocated:.1f}MB allocated, {mem_reserved:.1f}MB reserved[/green]")
-                        if mem_allocated > 100:  # If more than 100MB is used, GPU is likely being used
+                        mem_allocated = torch.cuda.memory_allocated(0) / (1024**2)
+                        mem_reserved = torch.cuda.memory_reserved(0) / (1024**2)
+                        if mem_allocated > 100:
                             console.print("[green]✅ GPU is actively being used for inference[/green]")
-                        else:
-                            console.print("[yellow]⚠️ GPU memory usage is low. May not be fully utilizing GPU[/yellow]")
-                except Exception as e:
-                    console.print(f"[yellow]Could not verify GPU usage: {e}[/yellow]")
+                except Exception:
+                    pass
 
         except Exception as e:
             console.print(f"[red]Error initializing model or GPU manager: {str(e)}[/red]")
-            # Ensure GPU manager is cleaned up even if Llama init failed
             if 'gpu_manager' in locals() and gpu_manager is not None:
                 gpu_manager.cleanup()
             sys.exit(1)
