@@ -385,7 +385,6 @@ with suppress_stderr():
             # Initialize Llama model with verbose=False to minimize logging
             # Set environment variable to suppress llama.cpp logs
             os.environ['LLAMA_CPP_LOG_LEVEL'] = '0'
-            console.print("init llama")
             # Initialize Llama with minimal logging
             llm = Llama(
 
@@ -396,7 +395,7 @@ with suppress_stderr():
                 use_mlock=True,
                 use_mmap=True,
                 low_vram=True,
-                verbose=False,  # Ensure verbose is False
+                verbose=True,  # Ensure verbose is False
                 f16_kv=True,
                 seed=42,
                 embedding=False,
