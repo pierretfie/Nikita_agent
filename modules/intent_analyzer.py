@@ -60,135 +60,241 @@ Assistant: "X is [explanation]. Would you like to see how to [related action]? J
             "should_execute": False,
             "personal_reference": None,
             "emotional_context": None,
-            "technical_context": None
+            "technical_context": None,
+            "response": None,
+            "targets": [],
+            "follow_up_suggestions": []
         }
         
-        # Check for personal references
-        personal_patterns = {
-            r"network\s+(\w+)": "network_contact",
-            r"(\w+)\s+from\s+network": "network_contact",
-            r"(\w+)\s+in\s+network": "network_contact"
-        }
+        # Extract targets first - this should happen regardless of intent
+        from modules.engagement_manager import extract_targets
+        detected_targets = extract_targets(user_input)
+        if detected_targets:
+            analysis["targets"] = detected_targets
+            analysis["technical_context"] = "target_detected"
         
-        for pattern, ref_type in personal_patterns.items():
+        # --- PRIORITY 1: Command Intent Detection ---
+        command_triggers = ["run", "execute", "scan", "check", "show", "list", "find", "get", "what is", "tell me"]
+        potential_command_terms = command_triggers + list(self.system_commands.keys())
+        command_found = None
+        trigger_word = None
+
+        # Check if input starts with a trigger or contains a known command
+        for term in potential_command_terms:
+            pattern = r'\b' + re.escape(term) + r'\b'
             match = re.search(pattern, input_lower)
             if match:
-                analysis["personal_reference"] = {
-                    "name": match.group(1),
-                    "type": ref_type,
-                    "context": "network"
-                }
+                command_found = term
+                potential_cmd_str = user_input[match.end():].strip()
+                
+                if term in self.system_commands:
+                    analysis["command"] = user_input
+                    if input_lower.startswith(("help", "man")):
+                        analysis["intent"] = "help_request"
+                        analysis["should_execute"] = False
+                    else:
+                        analysis["intent"] = "command_execution"
+                        analysis["should_execute"] = any(trigger in input_lower.split() for trigger in ["run", "execute"])
+                elif term in command_triggers:
+                    analysis["intent"] = "command_request"
+                    mentioned_tool = None
+                    for tool in self.system_commands.keys():
+                        tool_pattern = r'\b' + re.escape(tool) + r'\b'
+                        if re.search(tool_pattern, input_lower):
+                            mentioned_tool = tool
+                            break
+
+                    if mentioned_tool:
+                        analysis["command"] = user_input
+                        analysis["should_execute"] = any(trigger in input_lower.split() for trigger in ["run", "execute"])
+                    else:
+                        analysis["command"] = None
+                        analysis["should_execute"] = False
                 break
+
+        # --- PRIORITY 2: Target-based Analysis ---
+        if analysis["targets"]:
+            # Generate comprehensive follow-up suggestions based on detected targets
+            for target in analysis["targets"]:
+                if re.match(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', target):  # IP or CIDR
+                    # Network scanning options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to scan {target} for open ports?",
+                        f"I can check if {target} is responding to ping.",
+                        f"Would you like to see what services are running on {target}?",
+                        f"Should I perform a vulnerability scan on {target}?",
+                        f"Would you like me to check for common web vulnerabilities on {target}?",
+                        f"I can scan {target} for specific ports or services you're interested in.",
+                        f"Would you like to see what operating system {target} is running?",
+                        f"Should I check if {target} has any exposed databases?",
+                        f"Would you like me to scan {target} for common misconfigurations?",
+                        f"I can check if {target} has any exposed admin interfaces."
+                    ])
+                    
+                    # Network mapping options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to map the network topology around {target}?",
+                        f"I can check what other hosts are in the same network as {target}.",
+                        f"Should I identify the network services and their versions on {target}?",
+                        f"Would you like to see the network path to {target}?",
+                        f"I can check for any network security devices protecting {target}."
+                    ])
+                    
+                    # Security assessment options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to check {target} for common security misconfigurations?",
+                        f"I can scan {target} for known vulnerabilities in running services.",
+                        f"Should I check if {target} is running any outdated or vulnerable software?",
+                        f"Would you like me to analyze {target}'s security posture?",
+                        f"I can check if {target} has any exposed sensitive information."
+                    ])
+                
+                elif re.match(r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}', target):  # Hostname
+                    # DNS and resolution options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to resolve the DNS for {target}?",
+                        f"I can check all DNS records associated with {target}.",
+                        f"Should I verify the SSL/TLS configuration of {target}?",
+                        f"Would you like to see the IP addresses associated with {target}?",
+                        f"I can check if {target} has any subdomains."
+                    ])
+                    
+                    # Web-specific options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to scan {target} for web vulnerabilities?",
+                        f"I can check if {target} has any exposed admin panels.",
+                        f"Should I analyze the security headers of {target}?",
+                        f"Would you like me to check for common web misconfigurations on {target}?",
+                        f"I can scan {target} for exposed sensitive files."
+                    ])
+                    
+                    # General security options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to check if {target} is responding to ping?",
+                        f"I can scan {target} for open ports and services.",
+                        f"Should I check if {target} has any known vulnerabilities?",
+                        f"Would you like to see what services are running on {target}?",
+                        f"I can analyze the security posture of {target}."
+                    ])
         
-        # Analyze emotional context
-        emotional_indicators = {
-            "urgency": ["urgent", "asap", "quick", "hurry"],
-            "frustration": ["frustrated", "angry", "annoyed"],
-            "concern": ["worried", "concerned", "troubled"],
-            "curiosity": ["wonder", "curious", "interested"]
-        }
-        
-        for emotion, indicators in emotional_indicators.items():
-            if any(indicator in input_lower for indicator in indicators):
-                analysis["emotional_context"] = emotion
-                break
-        
-        # Analyze technical context
-        technical_indicators = {
-            "network": ["network", "ip", "connection", "wifi", "ethernet"],
-            "security": ["security", "secure", "protection", "vulnerability"],
-            "system": ["system", "computer", "machine", "device"]
-        }
-        
-        for context, indicators in technical_indicators.items():
-            if any(indicator in input_lower for indicator in indicators):
-                analysis["technical_context"] = context
-                break
-        
-        # Determine intent based on context
-        if analysis["personal_reference"]:
-            if analysis["emotional_context"] == "urgency":
-                analysis["intent"] = "urgent_network_contact"
-            elif analysis["emotional_context"] == "concern":
-                analysis["intent"] = "network_contact_concern"
-            else:
-                analysis["intent"] = "network_contact_query"
-        
-        # Generate appropriate response based on analysis
-        if analysis["personal_reference"]:
-            name = analysis["personal_reference"]["name"]
-            if analysis["emotional_context"] == "urgency":
-                analysis["response"] = f"I understand you need urgent assistance regarding {name} from the network team. How can I help?"
-            elif analysis["emotional_context"] == "concern":
-                analysis["response"] = f"I understand you're concerned about {name} from the network team. Let me help you with that."
-            else:
-                analysis["response"] = f"I understand you're looking for information about {name} from the network team. What specific information do you need?"
-        
+        # --- PRIORITY 3: Other Context Analysis ---
+        if analysis["intent"] is None:
+            # Check for personal references
+            personal_patterns = {
+                r'(?:network|from network|in network)\s+(\w+)': "network_contact",
+                r'(\w+)\s+(?:from|in) network': "network_contact"
+            }
+            for pattern, ref_type in personal_patterns.items():
+                match = re.search(pattern, input_lower)
+                if match:
+                    potential_name = match.group(1)
+                    if potential_name not in self.system_commands:
+                        analysis["personal_reference"] = {
+                            "name": potential_name,
+                            "type": ref_type,
+                            "context": "network"
+                        }
+                        analysis["intent"] = "network_contact_query"
+                        break
+
+            # Analyze emotional context
+            emotional_indicators = {
+                "urgency": ["urgent", "asap", "quick", "hurry"],
+                "frustration": ["frustrated", "angry", "annoyed"],
+                "concern": ["worried", "concerned", "troubled"],
+                "curiosity": ["wonder", "curious", "interested"]
+            }
+            for emotion, indicators in emotional_indicators.items():
+                if any(indicator in input_lower for indicator in indicators):
+                    analysis["emotional_context"] = emotion
+                    break
+
+            # Analyze technical context
+            technical_indicators = {
+                "network": ["network", "ip", "connection", "wifi", "ethernet"],
+                "security": ["security", "secure", "protection", "vulnerability"],
+                "system": ["system", "computer", "machine", "device"]
+            }
+            for context, indicators in technical_indicators.items():
+                if any(indicator in input_lower for indicator in indicators):
+                    analysis["technical_context"] = context
+                    break
+
+            # Determine final intent based on non-command context
+            if analysis["intent"] == "network_contact_query":
+                if analysis["emotional_context"] == "urgency":
+                    analysis["intent"] = "urgent_network_contact"
+                elif analysis["emotional_context"] == "concern":
+                    analysis["intent"] = "network_contact_concern"
+            elif analysis["intent"] is None:
+                if analysis["technical_context"]:
+                    analysis["intent"] = f"{analysis['technical_context']}_query"
+                else:
+                    analysis["intent"] = "general_query"
+
+        # Generate response for non-command queries with targets
+        if analysis["intent"] in ["general_query", "network_query"] and analysis["targets"]:
+            target = analysis["targets"][0]  # Use first target for response
+            if re.match(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', target):  # IP or CIDR
+                analysis["response"] = f"{target} is a network address. I can help you with:\n" + \
+                    "\n".join(f"- {suggestion}" for suggestion in analysis["follow_up_suggestions"][:3])
+            elif re.match(r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}', target):  # Hostname
+                analysis["response"] = f"{target} appears to be a hostname. I can help you with:\n" + \
+                    "\n".join(f"- {suggestion}" for suggestion in analysis["follow_up_suggestions"][:3])
+
         return analysis
 
     @lru_cache(maxsize=128)
     def _determine_command(self, intent, query):
         """Determine appropriate command based on intent and query (Cached)"""
         mapping = self.command_mappings.get(intent, {})
-
+        
         # Check for exact matches
         for keyword, command in mapping.items():
             if keyword in query:
                 # Extract potential targets
                 target_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}', query)
-                target = target_match.group(0) if target_match else "127.0.0.1"
-
+                target = target_match.group(0) if target_match else None
+                
                 # Extract potential network
                 network_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', query)
-                network = network_match.group(0) if network_match else "192.168.1.0/24"
-
-                # Extract file
-                file_match = re.search(r'([/A-Za-z0-9_\-\.]+)', query)
-                file = file_match.group(0) if file_match else "/usr/share/wordlists/rockyou.txt"
-
-
+                network = network_match.group(0) if network_match else None
+                
+                # If no target/network specified, use default network
+                if not target and not network and "scan" in query.lower():
+                    from modules.engagement_manager import get_default_network
+                    network = get_default_network()
+                
                 # Replace placeholders
-                command = command.replace("{TARGET}", target)
-                command = command.replace("{NETWORK}", network)
-                command = command.replace("{FILE}", file)
-
+                if target:
+                    command = command.replace("{TARGET}", target)
+                if network:
+                    command = command.replace("{NETWORK}", network)
+                
                 return command
-
+        
         # Handle special cases
-        if intent == "wifi_operations" and "scan" in query:
-            return "nmcli dev wifi list"
-
-        if intent == "system_info" and "ip" in query:
-            if "eth0" in query or "ethernet" in query:
-                return "ip -4 addr show eth0"
-            elif "wlan" in query or "wifi" in query:
-                return "ip -4 addr show wlan0"
-            else:
-                return "ip -4 addr show"
-
         if intent == "security_scan":
             # Extract IP if present
-            ip_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}', query)
-            target = ip_match.group(0) if ip_match else "127.0.0.1"
-
+            ip_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', query)
+            target = ip_match.group(0) if ip_match else None
+            
+            # If no target specified, use default network
+            if not target and "scan" in query.lower():
+                from modules.engagement_manager import get_default_network
+                target = get_default_network()
+            
             if "port" in query or "service" in query:
                 return f"nmap -sV -sC {target}"
             elif "vuln" in query:
                 return f"nmap -sV --script vuln {target}"
             elif "web" in query:
                 return f"nikto -h {target}"
+            elif "hosts" in query or "discovery" in query:
+                return f"nmap -sn {target}"
             else:
                 return f"nmap -sV {target}"
-
-        # Wordlist info
-        if intent == "wordlist_info":
-            if "location" in query or "where" in query:
-                return "which rockyou.txt"
-            elif "size" in query:
-                return "ls -l /usr/share/wordlists/rockyou.txt"
-            else:
-                 return "ls -l /usr/share/wordlists/rockyou.txt"
-
+        
         return None
 
     def _get_agent_response(self, intent):

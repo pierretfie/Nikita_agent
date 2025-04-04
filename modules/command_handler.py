@@ -208,99 +208,86 @@ def save_command_output(cmd, output, error=None):
 
     return output_file
 
-def run_command(cmd: str, timeout: int = 300, harden: bool = True) -> Tuple[bool, str, str, Optional[str]]:
-    """
-    Run a system command with enhanced safety and output handling.
-    
-    Args:
-        cmd (str): Command to run
-        timeout (int): Command timeout in seconds
-        harden (bool): Whether to apply hardening to the command
+def run_command(cmd, skip_confirmation=False):
+    """Run a command with proper error handling and output capture"""
+    if not cmd:
+        return None, "No command provided"
         
-    Returns:
-        tuple: (success, output, error, output_file_path)
-    """
-    # Validate command
-    if cmd.count('.') < 3 and " " in cmd and any(x in cmd for x in ["nmap", "scan", "ping"]):
-        console.print(f"❌ [red]Command incomplete:[/red] {cmd}")
-        return False, "", "Command appears incomplete", None
-
-    # Check command safety
-    is_safe, reason = is_command_safe(cmd)
-    if not is_safe:
-        console.print(f"❌ [red]Command blocked:[/red] {reason}")
-        return False, "", reason, None
-
-    # Get command risk level and category
-    risk_level, category = get_command_risk_level(cmd)
+    # Extract command name for categorization
+    cmd_parts = cmd.split()
+    cmd_name = cmd_parts[0] if cmd_parts else ""
     
-    # Check if confirmation is required
-    if requires_confirmation(cmd):
-        confirmation_msg = get_confirmation_message(cmd, risk_level, category)
-        console.print(f"\n[bold yellow]{confirmation_msg}[/bold yellow]")
+    # Check if command requires confirmation
+    requires_confirmation = any(keyword in cmd.lower() for keyword in [
+        "rm", "delete", "format", "dd", "mkfs", "nmap", "scan", "exploit"
+    ])
+    
+    if requires_confirmation and not skip_confirmation:
+        console.print("\n⚠️  Command requires confirmation:")
+        console.print(f"Command: {cmd}")
         
+        # Determine risk level
+        risk_level = "HIGH" if any(keyword in cmd.lower() for keyword in ["rm", "format", "dd"]) else "MEDIUM"
+        console.print(f"Risk Level: {risk_level}")
+        
+        # Determine category
+        category = "system_modification" if risk_level == "HIGH" else "network_scan"
+        console.print(f"Category: {category}")
+        
+        # Get confirmation
         while True:
-            response = input("> ").lower().strip()
-            if response == 'yes':
-                console.print("[green]✓ Command approved[/green]")
+            confirm = input("\nType 'yes' to proceed or 'no' to cancel.\n> ").lower()
+            if confirm == "yes":
+                console.print("✓ Command approved")
                 break
-            elif response == 'no':
-                console.print("❌ [yellow]Command execution cancelled by user[/yellow]")
-                return False, "", "Command cancelled by user", None
+            elif confirm == "no":
+                return None, "Command cancelled by user"
             else:
-                console.print("[red]Invalid input. Please type 'yes' or 'no'[/red]")
-
-    try:
-        # Harden and normalize command if requested
-        if harden:
-            cmd = harden_command(cmd)
-        
-        console.print(f"⚡ [bold cyan]Running:[/bold cyan] {cmd}")
-
-        # Split command for subprocess
-        cmd_list = shlex.split(cmd)
-        
-        # Execute the command with timeout
-        result = subprocess.run(
-            cmd_list, 
-            capture_output=True, 
-            text=True, 
-            timeout=timeout
-        )
-
-        # Save output to file
-        output_file = save_command_output(cmd, result.stdout, result.stderr)
-
-        # Format and display output
-        if result.stdout.strip():
-            # Special formatting for nmap output
-            if cmd.startswith("nmap"):
-                output_lines = result.stdout.strip().split("\n")
-                formatted_output = "\n".join(
-                    f"  {line}" if "open" in line else line 
-                    for line in output_lines
-                )
-                console.print(f"🖥️  [green]{formatted_output}[/green]")
-            else:
-                console.print(f"🖥️  [green]{result.stdout.strip()}[/green]")
-            
-            console.print(f"📝 [cyan]Output saved to:[/cyan] {output_file}")
-        else:
-            console.print(f"⚠️  [yellow]No output returned.[/yellow]")
-
-        return True, result.stdout, result.stderr, output_file
-
-    except subprocess.TimeoutExpired:
-        error_msg = f"Command timed out after {timeout} seconds"
-        console.print(f"❌ [red]{error_msg}[/red]")
-        save_command_output(cmd, "", error_msg)
-        return False, "", error_msg, None
+                console.print("Invalid input. Please type 'yes' or 'no'")
     
+    try:
+        # Add timestamp to output filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = os.path.join(OUTPUT_DIR, f"cmd_{timestamp}.txt")
+        
+        # Run command with output capture
+        process = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Capture output in real-time
+        output = []
+        while True:
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+            if line:
+                output.append(line.strip())
+                console.print(line.strip())
+        
+        # Get any remaining output
+        stdout, stderr = process.communicate()
+        if stdout:
+            output.extend(stdout.splitlines())
+        if stderr:
+            output.extend(stderr.splitlines())
+        
+        # Save output to file
+        with open(output_file, "w") as f:
+            f.write("\n".join(output))
+            
+        console.print(f"📝 Output saved to: {output_file}")
+        
+        return "\n".join(output), None
+        
     except Exception as e:
-        error_msg = str(e)
-        console.print(f"❌ [red]Error:[/red] {error_msg}")
-        save_command_output(cmd, "", error_msg)
-        return False, "", error_msg, None
+        error_msg = f"Error executing command: {str(e)}"
+        console.print(f"[red]{error_msg}[/red]")
+        return None, error_msg
 
 def is_command_safe(cmd):
     """
@@ -339,8 +326,6 @@ if __name__ == "__main__":
     print(f"Original: {test_cmd}")
     print(f"Hardened: {hardened}")
     
-    success, output, error, path = run_command(test_cmd, harden=False)
+    success, output = run_command(test_cmd)
     print(f"Success: {success}")
-    print(f"Output: {output}")
-    print(f"Error: {error}")
-    print(f"Output Path: {path}") 
+    print(f"Output: {output}") 

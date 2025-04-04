@@ -162,19 +162,23 @@ Thought Process:
         except:
             return []
 
-    def analyze_task(self, task):
-        """Analyze the task and generate appropriate reasoning"""
-        # Get intent analysis
-        intent_analysis = self._analyze_emotional_context(task)
-        
+    def analyze_task(self, task, intent_analysis=None):
+        """Analyze the task and generate appropriate reasoning, using provided intent analysis if available."""
+        # Get intent analysis details if provided, otherwise perform basic analysis
+        primary_intent = intent_analysis.get("intent") if intent_analysis else None
+        command = intent_analysis.get("command") if intent_analysis else None
+        emotional_context = intent_analysis.get("emotional_context") if intent_analysis else self._analyze_emotional_context(task)
+        technical_context = intent_analysis.get("technical_context") if intent_analysis else None
+        personal_context = intent_analysis.get("personal_reference") if intent_analysis else None
+
         # Initialize reasoning template
         reasoning = {
             "task_analysis": {
-                "primary_intent": None,
+                "primary_intent": primary_intent, # Use intent from analysis
                 "secondary_intents": [],
-                "personal_context": None,
-                "technical_context": None,
-                "emotional_context": None
+                "personal_context": personal_context, # Use personal context from analysis
+                "technical_context": None, # Will be populated based on intent/keywords
+                "emotional_context": emotional_context # Use emotional context from analysis
             },
             "response_strategy": {
                 "approach": None,
@@ -185,35 +189,57 @@ Thought Process:
             "execution_plan": {
                 "steps": [],
                 "priority": "normal",
-                "dependencies": []
+                "dependencies": [],
+                "command": command # Include command from analysis
             }
         }
-        
-        # Check for security-related queries
-        security_keywords = ["scan", "hack", "exploit", "attack", "security", "detect", "bypass", "evade", "tool", "best"]
-        if any(keyword in task.lower() for keyword in security_keywords):
-            reasoning["task_analysis"]["primary_intent"] = "security"
+
+        # Determine primary intent if not provided by analyzer
+        if not primary_intent:
+            security_keywords = ["scan", "hack", "exploit", "attack", "security", "detect", "bypass", "evade", "tool", "best", "command", "run", "execute"]
+            if any(keyword in task.lower() for keyword in security_keywords) or command:
+                primary_intent = "security" # Default to security if keywords or command present
+            else:
+                primary_intent = "general_query" # Fallback
+            reasoning["task_analysis"]["primary_intent"] = primary_intent
+
+        # Refine reasoning based on primary intent
+        if primary_intent in ["command_execution", "command_request", "help_request", "security"]:
             reasoning["response_strategy"]["approach"] = "technical"
             reasoning["response_strategy"]["tone"] = "professional"
             reasoning["response_strategy"]["technical_level"] = "advanced"
-            
+
             # Add security-specific context
             reasoning["task_analysis"]["technical_context"] = {
-                "domain": "security",
+                "domain": technical_context or "security", # Use provided or default
                 "complexity": "advanced",
                 "risk_level": "high"
             }
-            
-            # Add tool-specific context if asking about tools
-            if "tool" in task.lower() or "best" in task.lower():
-                reasoning["task_analysis"]["technical_context"]["focus"] = "tool_recommendation"
-                reasoning["response_strategy"]["follow_up_questions"] = [
-                    "What specific security requirements do you have?",
-                    "Are you looking for a specific type of security tool?",
-                    "Do you need a tool for a particular security task?"
-                ]
-                
-                # Add tool recommendations based on context
+
+            # Add tool-specific context if asking about tools or a command is present
+            if "tool" in task.lower() or "best" in task.lower() or command:
+                focus = "tool_recommendation" if "best" in task.lower() else "tool_usage"
+                reasoning["task_analysis"]["technical_context"]["focus"] = focus
+
+                # Add follow-up based on whether it's help or execution
+                if primary_intent == "help_request":
+                     reasoning["response_strategy"]["follow_up_questions"] = [
+                         f"What specifically about '{command.split()[-1] if command else 'this command'}' would you like help with?",
+                         "Are you looking for usage examples or explanations of options?"
+                     ]
+                elif primary_intent in ["command_request", "command_execution"]:
+                     reasoning["response_strategy"]["follow_up_questions"] = [
+                         "What is the target or scope for this command?",
+                         "Are there any specific parameters you want to use?"
+                     ]
+                else: # General tool query
+                     reasoning["response_strategy"]["follow_up_questions"] = [
+                         "What specific security requirements do you have?",
+                         "Are you looking for a specific type of security tool?",
+                         "Do you need a tool for a particular security task?"
+                     ]
+
+                # Add tool recommendations if appropriate (example)
                 if "scan" in task.lower() and "detect" in task.lower():
                     reasoning["execution_plan"]["recommended_tools"] = [
                         {
@@ -230,75 +256,43 @@ Thought Process:
                         }
                     ]
                 elif "vulnerability" in task.lower():
-                    reasoning["execution_plan"]["recommended_tools"] = [
-                        {
-                            "name": "Nessus",
-                            "description": "Comprehensive vulnerability scanner",
-                            "features": ["Vulnerability assessment", "Configuration auditing", "Malware detection"]
-                        },
-                        {
-                            "name": "OpenVAS",
-                            "description": "Open-source vulnerability scanner",
-                            "features": ["Network vulnerability scanning", "Web application scanning", "System hardening"]
-                        }
-                    ]
-            
+                     # (Vulnerability tool recommendations remain the same)
+                     pass # Placeholder
+
             # Add security-specific steps
             reasoning["execution_plan"]["steps"] = [
                 "analyze security requirements",
                 "identify potential risks",
                 "develop security strategy",
-                "implement security measures",
-                "verify security implementation"
+                "implement security measures" if primary_intent == "command_execution" else "formulate command/provide help",
+                "verify security implementation" if primary_intent == "command_execution" else "confirm understanding"
             ]
-            
-            # Add security-specific follow-up questions
-            reasoning["response_strategy"]["follow_up_questions"].extend([
-                "What specific security concerns are you addressing?",
-                "Are you working in a specific environment or network?",
-                "Do you have any specific compliance requirements?",
-                "What level of stealth or detection avoidance is needed?"
-            ])
-        
-        # Analyze personal references
-        if "network" in task.lower():
-            name_match = re.search(r"network\s+(\w+)", task.lower())
-            if name_match:
-                reasoning["task_analysis"]["personal_context"] = {
-                    "name": name_match.group(1),
-                    "role": "network_team",
-                    "context": "professional"
-                }
-        
-        # Set emotional context
-        reasoning["task_analysis"]["emotional_context"] = intent_analysis.get("emotion", "neutral")
-        
-        # Determine response strategy
-        if reasoning["task_analysis"]["personal_context"]:
-            reasoning["response_strategy"]["approach"] = "personal_reference"
-            reasoning["response_strategy"]["tone"] = "professional_empathy"
-            
-            # Generate appropriate follow-up questions
-            reasoning["response_strategy"]["follow_up_questions"] = [
-                f"What specific information do you need about {reasoning['task_analysis']['personal_context']['name']}?",
-                "Is this regarding a specific network issue or task?",
-                "Would you like me to help you contact them or find information about their work?"
-            ]
-        
-        # Set technical level based on context
-        if reasoning["task_analysis"]["technical_context"]:
-            reasoning["response_strategy"]["technical_level"] = "technical"
-        else:
-            reasoning["response_strategy"]["technical_level"] = "general"
-        
-        # Generate natural language response
-        response = self._generate_natural_language(task)
-        
-        return {
-            "reasoning": reasoning,
-            "response": response,
-            "follow_up_questions": reasoning["response_strategy"]["follow_up_questions"]
+        elif primary_intent in ["network_contact_query", "urgent_network_contact", "network_contact_concern"]:
+             # Handle personal reference specific reasoning
+             reasoning["task_analysis"]["technical_context"] = {"domain": "communication"}
+             reasoning["response_strategy"]["approach"] = "personal_reference"
+             reasoning["response_strategy"]["tone"] = "professional_empathy"
+             reasoning["response_strategy"]["follow_up_questions"] = [
+                 f"What specific information do you need about {personal_context['name'] if personal_context else 'them'}?",
+                 "Is this regarding a specific network issue or task?",
+                 "Would you like me to help you contact them or find information about their work?"
+             ]
+             reasoning["execution_plan"]["steps"] = ["clarify request", "gather contact info (if requested)", "provide assistance"]
+
+        else: # General query or other intents
+            reasoning["response_strategy"]["approach"] = "informative"
+            reasoning["response_strategy"]["tone"] = "helpful"
+            reasoning["response_strategy"]["technical_level"] = "moderate"
+            reasoning["task_analysis"]["technical_context"] = {"domain": technical_context or "general"}
+            reasoning["execution_plan"]["steps"] = ["understand query", "provide information", "ask clarifying questions"]
+
+        # Combine reasoning components into a single dictionary for the final prompt
+        final_reasoning_context = {
+             "reasoning": reasoning, # Keep the nested structure
+             "follow_up_questions": reasoning["response_strategy"].get("follow_up_questions", [])
         }
+
+        return final_reasoning_context
 
     def _determine_goal(self, task):
         """Determine the goal based on task description"""

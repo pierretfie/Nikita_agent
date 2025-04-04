@@ -24,10 +24,10 @@ import contextlib
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Base directory for Nikita (where model and output files are)
-NIKITA_BASE_DIR = os.path.join(os.path.expanduser("~"), "Nikita_Agent_model")
+NIKITA_BASE_DIR = os.path.join(os.path.expanduser("~"), "tinyllama")
 
 # Construct absolute paths relative to NIKITA_BASE_DIR
-MODEL_PATH = os.path.join(NIKITA_BASE_DIR, "mistral.gguf")
+MODEL_PATH = os.path.join(NIKITA_BASE_DIR, "tinyllama-1.1b-chat-v1.0.Q5_K_M.gguf")
 OUTPUT_DIR = os.path.join(NIKITA_BASE_DIR, "outputs")
 HISTORY_FILE = os.path.join(NIKITA_BASE_DIR, "history.json")
 CHAT_HISTORY_FILE = Path(os.path.join(NIKITA_BASE_DIR, "nikita_history.json"))
@@ -58,7 +58,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Model parameters
 #max tokens refer to the maximum number of tokens that the model can generate in a single response.
-MAX_TOKENS = 1024  #  from 512
+MAX_TOKENS = 2048  #  from 512
 TEMPERATURE = 0.3  # Reduced from 0.7 for more focused responses
 # Maximum number of messages to keep in memory
 MEMORY_LIMIT = 20  # Set a reasonable limit for memory usage
