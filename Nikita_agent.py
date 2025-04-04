@@ -650,8 +650,13 @@ def main():
 
             # Generate reasoning - do quickly and in background if possible
             try:
-                # Pass the result of intent analysis to the reasoning engine
-                reasoning_future = executor.submit(reasoning_engine.analyze_task, user_input, intent_analysis=intent_analysis)
+                # Pass the result of intent analysis AND chat_memory to the reasoning engine
+                reasoning_future = executor.submit(
+                    reasoning_engine.analyze_task,
+                    user_input,
+                    intent_analysis=intent_analysis,
+                    chat_memory=chat_memory # Pass chat_memory here
+                )
 
                 # Get reasoning result with timeout and better error handling
                 try:
@@ -666,13 +671,16 @@ def main():
                 reasoning_result = {"reasoning": {}, "follow_up_questions": []}
 
             # Use context optimizer to get optimized prompt
+            # Pass necessary context including reasoning and follow-ups
             full_prompt = context_optimizer.get_optimized_prompt(
-                chat_memory=chat_memory[-3:],
+                chat_memory=chat_memory[-5:], # Use last 5 for better context
                 current_task=user_input,
-                base_prompt="You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task.",
+                base_prompt=PROMPT_TEMPLATE, # Use the loaded template
                 reasoning_context=reasoning_result.get("reasoning", {}),
                 follow_up_questions=reasoning_result.get("follow_up_questions", []),
-                tool_context=tool_manager.get_tool_context(reasoning_result.get("tool_name")) if reasoning_result.get("tool_name") else None
+                tool_context=tool_manager.get_tool_context(reasoning_result.get("tool_name")) if reasoning_result.get("tool_name") else None,
+                # Add intent analysis results for the optimizer to potentially use
+                intent_analysis_context=intent_analysis
             )
 
             # --- DEBUG START ---
