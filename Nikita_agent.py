@@ -373,7 +373,7 @@ with suppress_output():
                 n_gpu_layers = 0  # Default to CPU-only
                 if device_info['gpu_type'] == 'cuda' and device_info['llama_compatible']:
                     # Use GPU for compatible CUDA devices
-                    #console.print(f"[green]  • Using GPU acceleration: {device_info['llama_layers_assigned']} layers[/green]")
+                    console.print(f"[green]  • Using GPU acceleration: {device_info['llama_layers_assigned']} layers[/green]")
                     n_gpu_layers = device_info['llama_layers_assigned']
             else:
                 console.print("[yellow]Limited device info available. Using CPU-only mode.[/yellow]")
