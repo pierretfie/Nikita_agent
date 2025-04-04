@@ -6,331 +6,256 @@ import time
 import json
 import os
 from functools import lru_cache  # Add caching
-from collections import Counter
-from modules.engagement_manager import extract_targets, get_default_network # Added get_default_network
-
-# Define path for intent patterns relative to this file's location
-INTENT_PATTERNS_FILE = os.path.join(os.path.dirname(__file__), "intent_patterns.json")
-OUTPUT_DIR = "outputs" # Default output dir, consider making this configurable
 
 class IntentAnalyzer:
-    def __init__(self, output_dir=OUTPUT_DIR, system_commands=None):
+    def __init__(self, output_dir, system_commands):
+        # Define intent categories
         self.output_dir = output_dir
-        self.patterns = self._load_patterns()
-        self.system_commands = system_commands if system_commands else {}
-        self.command_map = self._build_command_map()
-
-    def _load_patterns(self):
+        self.system_commands = system_commands # Store accessible commands
+        
+        # Load patterns from JSON file
         try:
-            with open(INTENT_PATTERNS_FILE, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print(f"Error: Intent patterns file not found at {INTENT_PATTERNS_FILE}")
-            return {}
-        except json.JSONDecodeError:
-            print(f"Error: Could not decode JSON from {INTENT_PATTERNS_FILE}")
-            return {}
+            patterns_file = os.path.join(os.path.dirname(__file__), "intent_patterns.json")
+            with open(patterns_file, "r") as f:
+                patterns_data = json.load(f)
+                self.intent_categories = patterns_data["intent_categories"]
+                self.command_mappings = patterns_data["command_mappings"]
+                self.response_templates = patterns_data["response_templates"]
+                self.follow_up_patterns = patterns_data["follow_up_patterns"]
+                self.quality_indicators = patterns_data["quality_indicators"]
         except Exception as e:
-            print(f"Error loading intent patterns: {e}")
-            return {}
+            print(f"Warning: Could not load intent patterns: {e}")
+            # Fallback to empty patterns if file loading fails
+            self.intent_categories = {}
+            self.command_mappings = {}
+            self.response_templates = {}
+            self.follow_up_patterns = {}
+        self.quality_indicators = {
+            "empty_output": r'^\s*$',
+                "error_patterns": [],
+                "success_patterns": {}
+        }
 
-    def _build_command_map(self):
-        """Build a map from intent keywords to specific commands."""
-        command_map = {}
-        # Use patterns if available
-        if self.patterns and "intent_patterns" in self.patterns:
-            for category, data in self.patterns["intent_patterns"].items():
-                if "keywords" in data:
-                    command = data.get("suggested_command", "") # Get suggested command
-                    for keyword in data["keywords"]:
-                        # Map keyword to potential command structure
-                        command_map[keyword] = {
-                            "base_command": command.split(" ")[0] if command else keyword, # Default base to keyword if no suggestion
-                            "intent": category,
-                            "example_params": data.get("example_params", ""),
-                            "description": data.get("description", "")
-                        }
-        # Fallback or supplement with system commands
-        for cmd, desc in self.system_commands.items():
-            if cmd not in command_map: # Avoid overwriting pattern-based map
-                 command_map[cmd] = {
-                     "base_command": cmd,
-                     "intent": "command_execution", # Default intent
-                     "example_params": "",
-                     "description": desc
-                 }
-        return command_map
+        self.command_execution_time = {} #Track time
+        self.interaction_pattern = """When a user asks about something that involves system commands or actions:
+1. First explain the concept or answer their question
+2. If there's a relevant command or action that could help, ask if they'd like to see it
+3. Only show or execute commands after getting explicit user consent
+4. Keep responses conversational and interactive
 
-    def _get_last_assistant_question(self, chat_memory):
-        """Helper to find the last question asked by the assistant."""
-        if not chat_memory:
-            return None
-        for i in range(len(chat_memory) - 1, -1, -1):
-            entry = chat_memory[i]
-            if entry.get("role") == "assistant":
-                content = entry.get("content", "")
-                if content.strip().endswith("?"):
-                    # Basic check for choice questions
-                    if " or " in content.lower() and ("public" in content.lower() and "private" in content.lower()):
-                         return {"type": "choice", "question": content, "options": ["public", "private"]}
-                    # Add other question type recognitions here if needed
-                    return {"type": "general", "question": content}
-                else:
-                    return None # Last assistant message wasn't a question
-        return None
+Example pattern:
+User: "What is X?"
+Assistant: "X is [explanation]. Would you like to see how to [related action]? Just say 'yes' and I'll show you."
+"""
 
-    def analyze(self, user_input, chat_memory=None):
-        """
-        Analyze user input for intent, context, potential commands, and conversational state.
-        Includes enhanced logic for informational queries and answers to questions.
-        """
+    def analyze(self, user_input):
+        """Analyze user input for intent and context"""
+        input_lower = user_input.lower()
+        
+        # Initialize analysis result
         analysis = {
-            "intent": "unknown",
+            "intent": None,
             "context": {},
             "command": None,
             "should_execute": False,
-            "personal_reference": None, # Placeholder
-            "emotional_context": None, # Placeholder
-            "technical_context": None, # Placeholder
-            "response": None, # Placeholder
+            "personal_reference": None,
+            "emotional_context": None,
+            "technical_context": None,
+            "response": None,
             "targets": [],
-            "follow_up_suggestions": [],
-            "is_answer": False, # Flag if input is likely an answer
-            "extracted_answer": None # Store extracted answer value
+            "follow_up_suggestions": []
         }
-        user_input_lower = user_input.lower().strip()
+        
+        # Extract targets first - this should happen regardless of intent
+        from modules.engagement_manager import extract_targets
+        detected_targets = extract_targets(user_input)
+        if detected_targets:
+            analysis["targets"] = detected_targets
+            analysis["technical_context"] = "target_detected"
+        
+        # --- PRIORITY 1: Command Intent Detection ---
+        command_triggers = ["run", "execute", "scan", "check", "show", "list", "find", "get", "what is", "tell me"]
+        potential_command_terms = command_triggers + list(self.system_commands.keys())
+        command_found = None
+        trigger_word = None
 
-        if not user_input_lower:
-            analysis["intent"] = "empty_input"
-            return analysis
+        # Check if input starts with a trigger or contains a known command
+        for term in potential_command_terms:
+            pattern = r'\b' + re.escape(term) + r'\b'
+            match = re.search(pattern, input_lower)
+            if match:
+                command_found = term
+                potential_cmd_str = user_input[match.end():].strip()
+                
+                if term in self.system_commands:
+                    analysis["command"] = user_input
+                    if input_lower.startswith(("help", "man")):
+                        analysis["intent"] = "help_request"
+                        analysis["should_execute"] = False
+                    else:
+                        analysis["intent"] = "command_execution"
+                        analysis["should_execute"] = any(trigger in input_lower.split() for trigger in ["run", "execute"])
+                elif term in command_triggers:
+                    analysis["intent"] = "command_request"
+                    mentioned_tool = None
+                    for tool in self.system_commands.keys():
+                        tool_pattern = r'\b' + re.escape(tool) + r'\b'
+                        if re.search(tool_pattern, input_lower):
+                            mentioned_tool = tool
+                            break
 
-        # 1. Check if it's an answer to a previous question
-        last_question = self._get_last_assistant_question(chat_memory)
-        if last_question:
-            # Check for specific answers to known question types
-            if last_question["type"] == "choice" and last_question["options"] == ["public", "private"]:
-                if "private" in user_input_lower:
-                    analysis["is_answer"] = True
-                    analysis["extracted_answer"] = "private"
-                    analysis["intent"] = "answer_to_question" # Specific intent for answers
-                elif "public" in user_input_lower:
-                    analysis["is_answer"] = True
-                    analysis["extracted_answer"] = "public"
-                    analysis["intent"] = "answer_to_question"
-
-            # Add more sophisticated answer checking here if needed
-            # e.g., using fuzzy matching or checking against expected formats
-
-        # If it's identified as an answer, prioritize that intent
-        if analysis["is_answer"]:
-             # Targets might still be relevant from the original question context
-             if chat_memory:
-                 # Look back for the user query that prompted the question
-                 for i in range(len(chat_memory) - 2, -1, -1): # Start before the last assistant message
-                     entry = chat_memory[i]
-                     if entry.get("role") == "user":
-                         original_query = entry.get("content", "")
-                         analysis["targets"] = extract_targets(original_query, use_cache=False) # Re-extract from original
+                    if mentioned_tool:
+                        analysis["command"] = user_input
+                        analysis["should_execute"] = any(trigger in input_lower.split() for trigger in ["run", "execute"])
+                    else:
+                        analysis["command"] = None
+                        analysis["should_execute"] = False
                 break
-             return analysis # Return early, reasoning engine will handle combining answer with original task
 
-        # 2. Check for informational queries BEFORE command patterns
-        # Simple patterns for informational queries
-        informational_triggers = ["what is", "what's", "explain", "tell me about", "define"]
-        if any(user_input_lower.startswith(trigger) for trigger in informational_triggers):
-            analysis["intent"] = "informational_query"
-            # Extract the topic of the query
-            for trigger in informational_triggers:
-                if user_input_lower.startswith(trigger):
-                    analysis["context"]["topic"] = user_input.split(trigger, 1)[1].strip().rstrip("?")
-                    break
-            # No command needed for informational queries
-            analysis["command"] = None
-            analysis["should_execute"] = False
-            # Generate informational follow-up suggestions if applicable
-            # (Could be enhanced in reasoning engine based on topic)
-            analysis["follow_up_suggestions"].append(f"Would you like to know more about related concepts to {analysis['context'].get('topic', 'this')}?")
-            return analysis # Return early for informational queries
-
-        # 3. If not an answer or informational query, proceed with command/general intent analysis
-        # Extract potential targets first
-        analysis["targets"] = extract_targets(user_input, use_cache=False) # Extract targets
-
-        # Intent matching based on patterns
-        best_match_score = 0
-        matched_intent = "general_query" # Default intent
-        matched_data = {}
-
-        if self.patterns and "intent_patterns" in self.patterns:
-            for intent, data in self.patterns["intent_patterns"].items():
-                score = 0
-                keywords = data.get("keywords", [])
-                regex_patterns = data.get("regex_patterns", [])
-
-                # Keyword scoring
-                for keyword in keywords:
-                    if keyword in user_input_lower:
-                        score += data.get("keyword_weight", 1) # Use specified weight or default
-
-                # Regex scoring
-                for pattern in regex_patterns:
-                    if re.search(pattern, user_input_lower, re.IGNORECASE):
-                        score += data.get("regex_weight", 2) # Regex matches are stronger
-
-                # Check if score is better than current best
-                if score > best_match_score:
-                    best_match_score = score
-                    matched_intent = intent
-                    matched_data = data
-
-        # Assign the best matched intent if score is above a threshold
-        analysis["intent"] = matched_intent if best_match_score > 0 else "general_query"
-        analysis["context"]["matched_pattern_data"] = matched_data # Store matched data for reasoning
-
-        # Determine command based on intent and input
-        analysis["command"], analysis["should_execute"] = self._determine_command(
-            user_input,
-            analysis["intent"],
-            analysis["targets"] # Pass targets to command determination
-        )
-
-        # Generate follow-up suggestions based on intent and targets
-        if analysis["intent"] in ["security_scan", "vulnerability_assessment"] and analysis["targets"]:
+        # --- PRIORITY 2: Target-based Analysis ---
+        if analysis["targets"]:
+            # Generate comprehensive follow-up suggestions based on detected targets
             for target in analysis["targets"]:
-                 target_type = "IP/CIDR" if re.match(r'^\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?$', target) else "Hostname/Other"
-                 if target_type == "IP/CIDR":
-                    analysis["follow_up_suggestions"].append(f"Scan {target} for common vulnerabilities?")
-                    analysis["follow_up_suggestions"].append(f"Check open ports on {target}?")
+                if re.match(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', target):  # IP or CIDR
+                    # Network scanning options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to scan {target} for open ports?",
+                        f"I can check if {target} is responding to ping.",
+                        f"Would you like to see what services are running on {target}?",
+                        f"Should I perform a vulnerability scan on {target}?",
+                        f"Would you like me to check for common web vulnerabilities on {target}?",
+                        f"I can scan {target} for specific ports or services you're interested in.",
+                        f"Would you like to see what operating system {target} is running?",
+                        f"Should I check if {target} has any exposed databases?",
+                        f"Would you like me to scan {target} for common misconfigurations?",
+                        f"I can check if {target} has any exposed admin interfaces."
+                    ])
+                    
+                    # Network mapping options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to map the network topology around {target}?",
+                        f"I can check what other hosts are in the same network as {target}.",
+                        f"Should I identify the network services and their versions on {target}?",
+                        f"Would you like to see the network path to {target}?",
+                        f"I can check for any network security devices protecting {target}."
+                    ])
+                    
+                    # Security assessment options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to check {target} for common security misconfigurations?",
+                        f"I can scan {target} for known vulnerabilities in running services.",
+                        f"Should I check if {target} is running any outdated or vulnerable software?",
+                        f"Would you like me to analyze {target}'s security posture?",
+                        f"I can check if {target} has any exposed sensitive information."
+                    ])
+                
+                elif re.match(r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}', target):  # Hostname
+                    # DNS and resolution options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to resolve the DNS for {target}?",
+                        f"I can check all DNS records associated with {target}.",
+                        f"Should I verify the SSL/TLS configuration of {target}?",
+                        f"Would you like to see the IP addresses associated with {target}?",
+                        f"I can check if {target} has any subdomains."
+                    ])
+                    
+                    # Web-specific options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to scan {target} for web vulnerabilities?",
+                        f"I can check if {target} has any exposed admin panels.",
+                        f"Should I analyze the security headers of {target}?",
+                        f"Would you like me to check for common web misconfigurations on {target}?",
+                        f"I can scan {target} for exposed sensitive files."
+                    ])
+                    
+                    # General security options
+                    analysis["follow_up_suggestions"].extend([
+                        f"Would you like me to check if {target} is responding to ping?",
+                        f"I can scan {target} for open ports and services.",
+                        f"Should I check if {target} has any known vulnerabilities?",
+                        f"Would you like to see what services are running on {target}?",
+                        f"I can analyze the security posture of {target}."
+                    ])
+        
+        # --- PRIORITY 3: Other Context Analysis ---
+        if analysis["intent"] is None:
+            # Check for personal references
+            personal_patterns = {
+                r'(?:network|from network|in network)\s+(\w+)': "network_contact",
+                r'(\w+)\s+(?:from|in) network': "network_contact"
+            }
+            for pattern, ref_type in personal_patterns.items():
+                match = re.search(pattern, input_lower)
+                if match:
+                    potential_name = match.group(1)
+                    if potential_name not in self.system_commands:
+                        analysis["personal_reference"] = {
+                            "name": potential_name,
+                            "type": ref_type,
+                            "context": "network"
+                        }
+                        analysis["intent"] = "network_contact_query"
+                        break
+
+            # Analyze emotional context
+            emotional_indicators = {
+                "urgency": ["urgent", "asap", "quick", "hurry"],
+                "frustration": ["frustrated", "angry", "annoyed"],
+                "concern": ["worried", "concerned", "troubled"],
+                "curiosity": ["wonder", "curious", "interested"]
+            }
+            for emotion, indicators in emotional_indicators.items():
+                if any(indicator in input_lower for indicator in indicators):
+                    analysis["emotional_context"] = emotion
+                    break
+
+            # Analyze technical context
+            technical_indicators = {
+                "network": ["network", "ip", "connection", "wifi", "ethernet"],
+                "security": ["security", "secure", "protection", "vulnerability"],
+                "system": ["system", "computer", "machine", "device"]
+            }
+            for context, indicators in technical_indicators.items():
+                if any(indicator in input_lower for indicator in indicators):
+                    analysis["technical_context"] = context
+                    break
+
+            # Determine final intent based on non-command context
+            if analysis["intent"] == "network_contact_query":
+                if analysis["emotional_context"] == "urgency":
+                    analysis["intent"] = "urgent_network_contact"
+                elif analysis["emotional_context"] == "concern":
+                    analysis["intent"] = "network_contact_concern"
+            elif analysis["intent"] is None:
+                if analysis["technical_context"]:
+                    analysis["intent"] = f"{analysis['technical_context']}_query"
                 else:
-                    analysis["follow_up_suggestions"].append(f"Perform DNS enumeration for {target}?")
-                    analysis["follow_up_suggestions"].append(f"Check web server configuration for {target}?")
-        elif analysis["intent"] == "general_query" and analysis["targets"]:
-             analysis["follow_up_suggestions"].append(f"Would you like to perform an action on the detected target(s): {', '.join(analysis['targets'])}?")
+                    analysis["intent"] = "general_query"
 
-
-        # Basic emotional/personal/technical context (placeholders, can be expanded)
-        # These would typically involve more complex NLP or pattern matching
-        # analysis["emotional_context"] = self._analyze_emotion(user_input_lower)
-        # analysis["personal_reference"] = self._find_personal_references(user_input_lower)
-        # analysis["technical_context"] = self._assess_technicality(user_input_lower)
+        # Generate response for non-command queries with targets
+        if analysis["intent"] in ["general_query", "network_query"] and analysis["targets"]:
+            target = analysis["targets"][0]  # Use first target for response
+            if re.match(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', target):  # IP or CIDR
+                analysis["response"] = f"{target} is a network address. I can help you with:\n" + \
+                    "\n".join(f"- {suggestion}" for suggestion in analysis["follow_up_suggestions"][:3])
+            elif re.match(r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}', target):  # Hostname
+                analysis["response"] = f"{target} appears to be a hostname. I can help you with:\n" + \
+                    "\n".join(f"- {suggestion}" for suggestion in analysis["follow_up_suggestions"][:3])
 
         return analysis
-
-    def _determine_command(self, user_input, intent, targets):
-        """
-        Determine the command to execute based on intent, user input, and targets.
-        Enhanced to use targets and default networks.
-        """
-        user_input_lower = user_input.lower()
-        command = None
-        should_execute = False # Default to not executing unless explicitly inferred
-
-        # --- Command Logic ---
-        # Use command_map for keyword-based command generation
-        words = user_input_lower.split()
-        base_command = None
-        cmd_data = None
-
-        # Find command keyword
-        for word in words:
-            if word in self.command_map:
-                cmd_data = self.command_map[word]
-                base_command = cmd_data.get("base_command", word)
-                break
-            # Check aliases if defined in patterns
-            if self.patterns and "tool_aliases" in self.patterns:
-                 for tool, aliases in self.patterns["tool_aliases"].items():
-                     if word in aliases:
-                         base_command = tool
-                         # Find corresponding cmd_data for the actual tool name
-                         if tool in self.command_map:
-                             cmd_data = self.command_map[tool]
-                         break
-            if base_command: break # Exit outer loop once command keyword is found
-
-        if base_command:
-            command_parts = [base_command]
-            target_specified = bool(targets)
-
-            # Add target(s) if relevant to the command/intent
-            if targets and intent in ["security_scan", "vulnerability_assessment", "network_enumeration", "command_execution"]:
-                command_parts.extend(targets) # Add all found targets
-            elif not target_specified and intent in ["security_scan", "network_enumeration"]:
-                # If a scan is intended but no target given, use default network
-                default_network = get_default_network()
-                if default_network:
-                    print(f"[IntentAnalyzer] No target specified for scan, using default network: {default_network}")
-                    command_parts.append(default_network)
-                    targets.append(default_network) # Add to analysis targets
-                else:
-                    print("[IntentAnalyzer] Scan intended, but no target specified and could not determine default network.")
-                    # Maybe ask user for target in reasoning phase
-
-            # Add parameters based on intent and keywords (simple example)
-            if intent == "security_scan":
-                if "deep" in user_input_lower or "thorough" in user_input_lower:
-                    if base_command == "nmap": command_parts.insert(1, "-A") # Example for nmap
-                elif "quick" in user_input_lower or "fast" in user_input_lower:
-                     if base_command == "nmap": command_parts.insert(1, "-T4 -F") # Example for nmap
-                # Add default scan options if none specified
-                elif base_command == "nmap" and len(command_parts) == (len(targets) + 1): # Only command + target(s)
-                     command_parts.insert(1, "-sV -T4") # Default versatile scan
-
-            elif intent == "vulnerability_assessment":
-                 if base_command == "nmap":
-                     # Add vuln script if not already added
-                     if "--script=vuln" not in command_parts and "-A" not in command_parts:
-                         command_parts.insert(1, "--script=vuln")
-
-            # Extract potential parameters mentioned by user (simple approach)
-            potential_params = [word for word in words if word.startswith('-')]
-            if potential_params:
-                 # Insert params after base command but before targets
-                 command_parts = [base_command] + potential_params + targets
-
-
-            command = " ".join(command_parts)
-
-            # Determine if the command should be executed directly
-            # More conservative approach: only execute if intent is clearly execution-focused
-            # and not just a request or query about a command.
-            if intent == "command_execution": # Only execute if the primary intent is direct execution
-                should_execute = True
-            elif intent == "security_scan" and "run" in user_input_lower or "execute" in user_input_lower:
-                 should_execute = True # Execute scans if explicitly told to run/execute
-
-
-        # Handle cases where intent is command_request but no specific command identified
-        # (e.g., "get my ip") - Reasoning engine should handle these based on intent.
-        if intent == "command_request" and not command:
-            # Let the reasoning engine figure out the command (like 'ip addr')
-            pass # No command formulated here, but intent is captured
-
-        # Refine command using shlex if needed (optional, good for complex commands)
-        # try:
-        #     command = " ".join(shlex.split(command))
-        # except:
-        #     pass # Keep original command string if shlex fails
-
-        return command, should_execute
-
-    # --- Placeholder methods for future expansion ---
-    # def _analyze_emotion(self, text): return None
-    # def _find_personal_references(self, text): return None
-    # def _assess_technicality(self, text): return None
 
     @lru_cache(maxsize=128)
     def _determine_command(self, intent, query):
         """Determine appropriate command based on intent and query (Cached)"""
         mapping = self.command_mappings.get(intent, {})
-
+        
         # Check for exact matches
         for keyword, command in mapping.items():
             if keyword in query:
                 # Extract potential targets
                 target_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}', query)
                 target = target_match.group(0) if target_match else None
-
+                
                 # Extract potential network
                 network_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', query)
                 network = network_match.group(0) if network_match else None
@@ -339,15 +264,15 @@ class IntentAnalyzer:
                 if not target and not network and "scan" in query.lower():
                     from modules.engagement_manager import get_default_network
                     network = get_default_network()
-
+                
                 # Replace placeholders
                 if target:
-                command = command.replace("{TARGET}", target)
+                    command = command.replace("{TARGET}", target)
                 if network:
-                command = command.replace("{NETWORK}", network)
-
+                    command = command.replace("{NETWORK}", network)
+                
                 return command
-
+        
         # Handle special cases
         if intent == "security_scan":
             # Extract IP if present
@@ -358,7 +283,7 @@ class IntentAnalyzer:
             if not target and "scan" in query.lower():
                 from modules.engagement_manager import get_default_network
                 target = get_default_network()
-
+            
             if "port" in query or "service" in query:
                 return f"nmap -sV -sC {target}"
             elif "vuln" in query:
@@ -369,7 +294,7 @@ class IntentAnalyzer:
                 return f"nmap -sn {target}"
             else:
                 return f"nmap -sV {target}"
-
+        
         return None
 
     def _get_agent_response(self, intent):
