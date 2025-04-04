@@ -130,8 +130,8 @@ class IntentAnalyzer:
                      entry = chat_memory[i]
                      if entry.get("role") == "user":
                          original_query = entry.get("content", "")
-                         analysis["targets"] = extract_targets(original_query) # Re-extract from original
-                         break
+                         analysis["targets"] = extract_targets(original_query, use_cache=False) # Re-extract from original
+                break
              return analysis # Return early, reasoning engine will handle combining answer with original task
 
         # 2. Check for informational queries BEFORE command patterns
@@ -154,7 +154,7 @@ class IntentAnalyzer:
 
         # 3. If not an answer or informational query, proceed with command/general intent analysis
         # Extract potential targets first
-        analysis["targets"] = extract_targets(user_input) # Extract targets
+        analysis["targets"] = extract_targets(user_input, use_cache=False) # Extract targets
 
         # Intent matching based on patterns
         best_match_score = 0
@@ -201,7 +201,7 @@ class IntentAnalyzer:
                  if target_type == "IP/CIDR":
                     analysis["follow_up_suggestions"].append(f"Scan {target} for common vulnerabilities?")
                     analysis["follow_up_suggestions"].append(f"Check open ports on {target}?")
-                 else:
+                else:
                     analysis["follow_up_suggestions"].append(f"Perform DNS enumeration for {target}?")
                     analysis["follow_up_suggestions"].append(f"Check web server configuration for {target}?")
         elif analysis["intent"] == "general_query" and analysis["targets"]:
@@ -323,14 +323,14 @@ class IntentAnalyzer:
     def _determine_command(self, intent, query):
         """Determine appropriate command based on intent and query (Cached)"""
         mapping = self.command_mappings.get(intent, {})
-        
+
         # Check for exact matches
         for keyword, command in mapping.items():
             if keyword in query:
                 # Extract potential targets
                 target_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}', query)
                 target = target_match.group(0) if target_match else None
-                
+
                 # Extract potential network
                 network_match = re.search(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', query)
                 network = network_match.group(0) if network_match else None
@@ -339,15 +339,15 @@ class IntentAnalyzer:
                 if not target and not network and "scan" in query.lower():
                     from modules.engagement_manager import get_default_network
                     network = get_default_network()
-                
+
                 # Replace placeholders
                 if target:
-                    command = command.replace("{TARGET}", target)
+                command = command.replace("{TARGET}", target)
                 if network:
-                    command = command.replace("{NETWORK}", network)
-                
+                command = command.replace("{NETWORK}", network)
+
                 return command
-        
+
         # Handle special cases
         if intent == "security_scan":
             # Extract IP if present
@@ -358,7 +358,7 @@ class IntentAnalyzer:
             if not target and "scan" in query.lower():
                 from modules.engagement_manager import get_default_network
                 target = get_default_network()
-            
+
             if "port" in query or "service" in query:
                 return f"nmap -sV -sC {target}"
             elif "vuln" in query:
@@ -369,7 +369,7 @@ class IntentAnalyzer:
                 return f"nmap -sn {target}"
             else:
                 return f"nmap -sV {target}"
-        
+
         return None
 
     def _get_agent_response(self, intent):

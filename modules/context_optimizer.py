@@ -10,7 +10,6 @@ import re
 import psutil
 from datetime import datetime
 import json
-from .engagement_manager import engagement_memory
 
 # Default token limits
 DEFAULT_MAX_TOKENS = 2048
@@ -35,7 +34,6 @@ class ContextOptimizer:
         self.engagement_memory = engagement_memory or {}
         self.memory_limit = memory_limit
         self.tool_context_cache = {}  # Cache for tool contexts
-        self.cache_limit = 50 # Limit cache size
         
     def format_tool_context(self, tool_context):
         """Format tool context into a readable string for the model"""
@@ -126,117 +124,139 @@ class ContextOptimizer:
         return relevant_msgs
 
     def get_optimized_prompt(self, chat_memory, current_task, base_prompt, reasoning_context=None, 
-                           follow_up_questions=None, tool_context=None, intent_analysis_context=None):
+                           follow_up_questions=None, tool_context=None):
         """
-        Generate an optimized prompt for the LLM, incorporating various context elements
-        and using caching.
+        Get an optimized prompt with context for the LLM.
+        
+        Args:
+            chat_memory (list): List of chat messages
+            current_task (str): Current user task/query
+            base_prompt (str): Base system prompt/instruction
+            reasoning_context (dict, optional): Context from reasoning engine
+            follow_up_questions (list, optional): List of follow-up questions
+            tool_context (dict, optional): Context about the tool being used
+            
+        Returns:
+            str: Optimized prompt with context
         """
-        # --- Cache Key Generation (Ultra-Simplified) ---
-        # Use lengths and basic string representations to guarantee hashability
-        key_part_base_prompt = str(base_prompt)
-        key_part_current_task = str(current_task)
-        key_part_chat_len = len(chat_memory)
-        key_part_reasoning_len = len(json.dumps(reasoning_context)) if reasoning_context else 0
-        key_part_followup_len = len(follow_up_questions) if follow_up_questions else 0
-        # Keep a hash of follow-up content for some sensitivity, ensuring strings
-        key_part_followup_content_hash = hash(tuple(str(q) for q in follow_up_questions)) if follow_up_questions else 0
-        key_part_tool_context_str = str(tool_context) if tool_context else ""
-        key_part_intent_len = len(json.dumps(intent_analysis_context)) if intent_analysis_context else 0
-
-        cache_key = (
-            key_part_base_prompt,
-            key_part_current_task,
-            key_part_chat_len,
-            key_part_reasoning_len,
-            key_part_followup_len,
-            key_part_followup_content_hash, # Mix of length and content hash
-            key_part_tool_context_str,
-            key_part_intent_len
-        )
-
-        # Check cache
+        # Check prompt cache first
+        cache_key = f"{base_prompt}_{current_task}_{len(chat_memory)}"
         if cache_key in self.prompt_cache:
             return self.prompt_cache[cache_key]
-
-        # --- Context Assembly ---
-        optimized_context = []
-        # Add recent conversation history (e.g., last 5 messages)
-        context_messages = chat_memory[-5:]
-        history_str = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in context_messages])
-
-        # --- Incorporate Reasoning & Follow-ups --- 
+            
+        # Extract targets from memory if available
+        targets = self.engagement_memory.get("targets", []) if self.engagement_memory else []
+            
+        # Get optimized context - keep last 5 messages for better continuity
+        context_messages = []
+        for msg in chat_memory[-5:]:
+            if isinstance(msg, dict) and msg.get('content'):
+                # Add role prefix for clarity
+                role = msg.get('role', 'user')
+                content = msg['content']
+                context_messages.append(f"{role.upper()}: {content}")
+        
+        context_str = "\n".join(context_messages)
+        
+        # Format tool context if available
+        tool_context_str = ""
+        if tool_context:
+            tool_context_str = self.format_tool_context(tool_context)
+        
+        # Format reasoning context if available
         reasoning_str = ""
         if reasoning_context:
-             # Add active targets if available in engagement memory (part of reasoning context now)
-             active_targets = engagement_memory.get("targets", [])
-             target_str = f"Active Targets: {', '.join(active_targets)}\n" if active_targets else ""
-             # Format the reasoning dictionary for inclusion
-             try:
-                 # Pretty print JSON for readability in the prompt
-                 reasoning_detail = json.dumps(reasoning_context, indent=2)
-                 reasoning_str = f"\nReasoning Context:\n{target_str}{reasoning_detail}\n"
-             except TypeError:
-                 reasoning_str = f"\nReasoning Context:\n{target_str}(Could not serialize reasoning detail)\n"
-
+            # Add target information to reasoning context if available
+            if targets:
+                reasoning_context["active_targets"] = targets
+            reasoning_str = f"\nReasoning Context:\n{json.dumps(reasoning_context, indent=2)}"
+        
+        # Format follow-up questions if available
         follow_up_str = ""
         if follow_up_questions:
-             follow_up_str = "\nFollow-up Questions:\n" + "\n".join([f"- {q}" for q in follow_up_questions]) + "\n"
-
-        # --- Tool Context ---
-        tool_context_str_formatted = f"\nTool Context:\n{tool_context}\n" if tool_context else ""
-
-        # --- Intent Analysis Context (Optional inclusion) ---
-        # Decide if/how to include intent analysis details. Might be redundant with reasoning context.
-        # intent_str = f"\nIntent Analysis:\n{json.dumps(intent_analysis_context, indent=2)}\n" if intent_analysis_context else ""
-
-        # --- Construct Final Prompt --- 
-        # Use the base_prompt template and fill placeholders
-        # Assuming base_prompt has placeholders like {chat_history}, {reasoning_context}, etc.
-        # If not, adjust the final string construction accordingly.
-        final_prompt = base_prompt # Start with the template
-
-        # Replace placeholders - use .replace() for safety if template structure varies
-        final_prompt = final_prompt.replace("{chat_history}", history_str)
-        final_prompt = final_prompt.replace("{reasoning_context}", reasoning_str) # Placeholder for combined reasoning
-        final_prompt = final_prompt.replace("{follow_up_questions}", follow_up_str) # Placeholder if needed
-        final_prompt = final_prompt.replace("{tool_context}", tool_context_str_formatted)
-        final_prompt = final_prompt.replace("{current_task}", current_task)
-        # Add other replacements if the template uses different placeholders
-
-        # Fallback if template doesn't have placeholders (simple concatenation)
-        # This part might need adjustment based on how `base_prompt` is structured.
-        # If the base_prompt IS the full structure already, this might be simpler:
-        # final_prompt = f"{base_prompt}\n\n{history_str}{reasoning_str}{follow_up_str}{tool_context_str_formatted}\nTask: {current_task}\nResponse:"
-
-
-        # --- Token Limit Check (Simplified) ---
-        # A proper tokenizer would be needed for accurate count. This is an estimate.
-        estimated_tokens = len(final_prompt.split())
-        if estimated_tokens > (self.max_tokens - self.reserve_tokens):
-            # Basic truncation strategy: trim history first
-            print(f"[ContextOptimizer] Warning: Estimated prompt tokens ({estimated_tokens}) exceed limit. Truncating history.")
-            # More sophisticated truncation could be implemented here
-            context_messages = chat_memory[-3:] # Reduce history further
-            history_str = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in context_messages])
-            # Rebuild prompt with truncated history
-            final_prompt = base_prompt
-            final_prompt = final_prompt.replace("{chat_history}", history_str)
-            final_prompt = final_prompt.replace("{reasoning_context}", reasoning_str)
-            final_prompt = final_prompt.replace("{follow_up_questions}", follow_up_str)
-            final_prompt = final_prompt.replace("{tool_context}", tool_context_str_formatted)
-            final_prompt = final_prompt.replace("{current_task}", current_task)
-
-
-        # --- Cache Management ---
-        # Remove oldest entry if cache exceeds limit
-        if len(self.prompt_cache) >= self.cache_limit:
-            oldest_key = next(iter(self.prompt_cache))
-            del self.prompt_cache[oldest_key]
+            follow_up_str = f"\nFollow-up Questions:\n" + "\n".join(f"- {q}" for q in follow_up_questions)
+        elif targets:  # Generate comprehensive follow-up questions for targets
+            follow_up_str = "\nFollow-up Questions:\n"
+            for target in targets:
+                if re.match(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', target):  # IP or CIDR
+                    # Network scanning options
+                    follow_up_str += f"- Would you like me to scan {target} for open ports?\n"
+                    follow_up_str += f"- Should I check if {target} is responding to ping?\n"
+                    follow_up_str += f"- Would you like to see what services are running on {target}?\n"
+                    follow_up_str += f"- Should I perform a vulnerability scan on {target}?\n"
+                    follow_up_str += f"- Would you like me to check for common web vulnerabilities on {target}?\n"
+                    follow_up_str += f"- I can scan {target} for specific ports or services you're interested in.\n"
+                    follow_up_str += f"- Would you like to see what operating system {target} is running?\n"
+                    follow_up_str += f"- Should I check if {target} has any exposed databases?\n"
+                    follow_up_str += f"- Would you like me to scan {target} for common misconfigurations?\n"
+                    follow_up_str += f"- I can check if {target} has any exposed admin interfaces.\n"
+                    
+                    # Network mapping options
+                    follow_up_str += f"- Would you like me to map the network topology around {target}?\n"
+                    follow_up_str += f"- I can check what other hosts are in the same network as {target}.\n"
+                    follow_up_str += f"- Should I identify the network services and their versions on {target}?\n"
+                    follow_up_str += f"- Would you like to see the network path to {target}?\n"
+                    follow_up_str += f"- I can check for any network security devices protecting {target}.\n"
+                    
+                    # Security assessment options
+                    follow_up_str += f"- Would you like me to check {target} for common security misconfigurations?\n"
+                    follow_up_str += f"- I can scan {target} for known vulnerabilities in running services.\n"
+                    follow_up_str += f"- Should I check if {target} is running any outdated or vulnerable software?\n"
+                    follow_up_str += f"- Would you like me to analyze {target}'s security posture?\n"
+                    follow_up_str += f"- I can check if {target} has any exposed sensitive information.\n"
+                    
+                elif re.match(r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}', target):  # Hostname
+                    # DNS and resolution options
+                    follow_up_str += f"- Would you like me to resolve the DNS for {target}?\n"
+                    follow_up_str += f"- I can check all DNS records associated with {target}.\n"
+                    follow_up_str += f"- Should I verify the SSL/TLS configuration of {target}?\n"
+                    follow_up_str += f"- Would you like to see the IP addresses associated with {target}?\n"
+                    follow_up_str += f"- I can check if {target} has any subdomains.\n"
+                    
+                    # Web-specific options
+                    follow_up_str += f"- Would you like me to scan {target} for web vulnerabilities?\n"
+                    follow_up_str += f"- I can check if {target} has any exposed admin panels.\n"
+                    follow_up_str += f"- Should I analyze the security headers of {target}?\n"
+                    follow_up_str += f"- Would you like me to check for common web misconfigurations on {target}?\n"
+                    follow_up_str += f"- I can scan {target} for exposed sensitive files.\n"
+                    
+                    # General security options
+                    follow_up_str += f"- Would you like me to check if {target} is responding to ping?\n"
+                    follow_up_str += f"- I can scan {target} for open ports and services.\n"
+                    follow_up_str += f"- Should I check if {target} has any known vulnerabilities?\n"
+                    follow_up_str += f"- Would you like to see what services are running on {target}?\n"
+                    follow_up_str += f"- I can analyze the security posture of {target}.\n"
         
-        # Cache the final prompt
-        self.prompt_cache[cache_key] = final_prompt
-
-        return final_prompt
+        # Add active targets if any
+        targets_str = ""
+        if targets:
+            targets_str = f"\nActive Targets:\n" + "\n".join(f"- {t}" for t in targets)
+        
+        # Create enhanced prompt with all context
+        prompt = f"{base_prompt}\n\n"
+        if context_str:
+            prompt += f"Recent Conversation:\n{context_str}\n"
+        if targets_str:
+            prompt += f"{targets_str}\n"
+        if tool_context_str:
+            prompt += f"{tool_context_str}\n"
+        if reasoning_str:
+            prompt += f"{reasoning_str}\n"
+        if follow_up_str:
+            prompt += f"{follow_up_str}\n"
+        
+        prompt += f"\nTask: {current_task}\nResponse:"
+        
+        # Cache the result
+        self.prompt_cache[cache_key] = prompt
+        
+        # Limit cache size
+        if len(self.prompt_cache) > 50:
+            keys_to_remove = list(self.prompt_cache.keys())[:-25]
+            for key in keys_to_remove:
+                self.prompt_cache.pop(key, None)
+                
+        return prompt
         
     def clear_cache(self):
         """Clear the internal cache to free memory"""
