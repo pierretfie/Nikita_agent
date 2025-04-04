@@ -392,7 +392,23 @@ with suppress_stderr():
                 n_ctx=system_params['context_limit'],
                 n_threads=system_params['n_threads'],
                 n_batch=system_params['n_batch'],
-                
+                use_mlock=True,
+                use_mmap=True,
+                low_vram=True,
+                verbose=False,  # Ensure verbose is False
+                f16_kv=True,
+                seed=42,
+                embedding=False,
+                rope_scaling={"type": "linear", "factor": 0.25},
+                n_gpu_layers=n_gpu_layers,
+                vocab_only=False,
+                gpu_device=0 if n_gpu_layers > 0 else -1,
+                main_gpu=0,
+                tensor_split=None,
+                gpu_memory_utilization=0.8 if n_gpu_layers > 0 else 0.0,
+                logits_all=False,
+                last_n_tokens_size=32,
+                cache=True
             )
             
             # Prewarm the model AFTER successful initialization
