@@ -166,6 +166,32 @@ class GPUManager:
                 # Fallback if memory stats fail
                 utilization = 0.0
             
+            # Calculate appropriate layer assignment based on GPU memory
+            # T4 has 16GB VRAM, determine the proper number of layers
+            gpu_memory_gb = device_props.total_memory / (1024**3)
+            
+            # Determine Llama layers assignment based on GPU memory
+            if 'T4' in device_props.name:
+                # For T4 (default in Colab), use all layers
+                llama_layers = -1  # Use all layers (will be interpreted correctly by llama-cpp)
+                console.print(f"[green]Detected Google Colab T4 GPU with {gpu_memory_gb:.1f}GB VRAM[/green]")
+                console.print("[green]Setting to use all GPU layers for maximum performance[/green]")
+            elif gpu_memory_gb >= 24:
+                # For high-end GPUs with lots of VRAM (A100, etc)
+                llama_layers = -1  # Use all layers
+            elif gpu_memory_gb >= 12:
+                # For GPUs with good VRAM (RTX 3080, etc)
+                llama_layers = -1  # Use all layers
+            elif gpu_memory_gb >= 8:
+                # For GPUs with decent VRAM
+                llama_layers = 32
+            elif gpu_memory_gb >= 4:
+                # For GPUs with limited VRAM
+                llama_layers = 24
+            else:
+                # For GPUs with very limited VRAM
+                llama_layers = 16
+            
             # Format the device info similar to OpenCL format
             device_info = {
                 'name': device_props.name,
@@ -177,7 +203,7 @@ class GPUManager:
                 'max_work_group_size': 1024,  # Default for most CUDA devices
                 'gpu_type': 'cuda',
                 'llama_compatible': True,
-                'llama_layers_assigned': 32,  # Default value for CUDA T4
+                'llama_layers_assigned': llama_layers,
                 'utilization': utilization
             }
             
@@ -231,7 +257,8 @@ class GPUManager:
             if not self.opencl_available and self.gpu_type == 'cuda' and self.cuda_device_info:
                 console.print("[yellow]OpenCL not available. Using CUDA via PyTorch directly.[/yellow]")
                 self.llama_compatible = True
-                self.llama_layers_assigned = 32  # Default value for CUDA T4
+                # Use the layers assigned in _get_cuda_device_info
+                self.llama_layers_assigned = self.cuda_device_info['llama_layers_assigned']
                 self.initialized = True
                 return True
             
@@ -242,7 +269,16 @@ class GPUManager:
                 if self.gpu_type == 'cuda' and torch.cuda.is_available():
                     console.print("[yellow]OpenCL not available, but CUDA found. Using CUDA via PyTorch directly.[/yellow]")
                     self.llama_compatible = True
-                    self.llama_layers_assigned = 32  # Default value for CUDA T4
+                    
+                    # Get the T4 info if available
+                    cuda_info = self._get_cuda_device_info()
+                    if cuda_info:
+                        self.cuda_device_info = cuda_info
+                        self.llama_layers_assigned = cuda_info['llama_layers_assigned']
+                    else:
+                        # Default if no detailed info available
+                        self.llama_layers_assigned = -1  # Use all layers as default
+                        
                     self.initialized = True
                     return True
                     
@@ -301,7 +337,16 @@ class GPUManager:
             if self.gpu_type == 'cuda' and torch.cuda.is_available():
                 console.print("[yellow]Falling back to CUDA via PyTorch.[/yellow]")
                 self.llama_compatible = True
-                self.llama_layers_assigned = 32  # Default for CUDA
+                
+                # Get the T4 info if available
+                cuda_info = self._get_cuda_device_info()
+                if cuda_info:
+                    self.cuda_device_info = cuda_info
+                    self.llama_layers_assigned = cuda_info['llama_layers_assigned']
+                else:
+                    # Default if no detailed info available
+                    self.llama_layers_assigned = -1  # Use all layers as default
+                    
                 self.initialized = True
                 return True
                 

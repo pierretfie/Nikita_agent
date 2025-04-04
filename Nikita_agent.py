@@ -19,6 +19,7 @@ import sys
 import readline  # Add readline for command history and editing
 import warnings
 import contextlib
+import torch
 
 # Determine the directory of the main script (Nikita_agent.py)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -393,25 +394,35 @@ with suppress_stderr():
                 rope_scaling={"type": "linear", "factor": 0.25},
                 n_gpu_layers=n_gpu_layers,  # Use n_gpu_layers from GPU detection
                 vocab_only=False,
-                # tensor_split=tensor_split, # Remove, not relevant for n_gpu_layers=0
+                # Add necessary CUDA parameters when using GPU
+                gpu_device=0 if n_gpu_layers > 0 else -1,  # Use GPU 0 if layers assigned
+                main_gpu=0,
+                tensor_split=None,  # Let llama.cpp determine the best split
+                gpu_memory_utilization=0.8 if n_gpu_layers > 0 else 0.0,  # Use 80% of GPU memory
                 logits_all=False,
                 last_n_tokens_size=32,
                 cache=True
-                # gpu_device=0, # Remove, not relevant
-                # gpu_memory_utilization=0.85, # Remove, not relevant
-                # use_opencl=True,  # Remove, let library decide based on build/availability if needed elsewhere
-                # opencl_context=gpu_manager.context,  # Remove, not used by Llama with n_gpu_layers=0
-                # opencl_queue=gpu_manager.queue,  # Remove, not used by Llama with n_gpu_layers=0
-                # parallel_processing=True,  # Remove, Llama won't parallelize with GPU here
-                # cpu_threads=system_params['n_threads'] // 2,  # Remove, use n_threads directly
-                # gpu_threads=system_params['n_threads'] // 2,  # Remove
-                # work_split_ratio=work_split_ratio # Remove
             )
             
             # Prewarm the model AFTER successful initialization
             console.print("[cyan]🔥 Prewarming model...[/cyan]")
             prewarm_duration = prewarm_model(llm, base_prompt="You are Nikita, an AI Security Assistant.")
             console.print(f"✅ [green] Model prewarmed in {prewarm_duration:.2f} seconds[/green]")
+            
+            # Verify GPU usage
+            if n_gpu_layers > 0:
+                try:
+                    # Check if GPU memory is being used
+                    if torch.cuda.is_available():
+                        mem_allocated = torch.cuda.memory_allocated(0) / (1024**2)  # in MB
+                        mem_reserved = torch.cuda.memory_reserved(0) / (1024**2)  # in MB
+                        console.print(f"[green]✅ GPU Memory in use: {mem_allocated:.1f}MB allocated, {mem_reserved:.1f}MB reserved[/green]")
+                        if mem_allocated > 100:  # If more than 100MB is used, GPU is likely being used
+                            console.print("[green]✅ GPU is actively being used for inference[/green]")
+                        else:
+                            console.print("[yellow]⚠️ GPU memory usage is low. May not be fully utilizing GPU[/yellow]")
+                except Exception as e:
+                    console.print(f"[yellow]Could not verify GPU usage: {e}[/yellow]")
 
         except Exception as e:
             console.print(f"[red]Error initializing model or GPU manager: {str(e)}[/red]")
@@ -447,6 +458,14 @@ def get_cached_response(prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE):
         if cache_key in MODEL_CACHE:
             return MODEL_CACHE[cache_key]
 
+        # Check GPU memory before inference
+        gpu_mem_before = 0
+        if torch.cuda.is_available():
+            try:
+                gpu_mem_before = torch.cuda.memory_allocated(0) / (1024**2)  # in MB
+            except:
+                pass
+                
         # Generate new response with optimized settings
         try:
             output = llm(prompt, 
@@ -455,6 +474,17 @@ def get_cached_response(prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE):
                         stop=["User:", "\nUser:", "USER:"],
                         echo=False,  # Disable echo for faster response
                         stream=False)  # Disable streaming for faster response
+            
+            # Check GPU memory after inference to verify GPU usage
+            if torch.cuda.is_available():
+                try:
+                    gpu_mem_after = torch.cuda.memory_allocated(0) / (1024**2)  # in MB
+                    gpu_mem_diff = gpu_mem_after - gpu_mem_before
+                    # Only print for significant changes to avoid log spam
+                    if gpu_mem_diff > 50 or gpu_mem_diff < -50:  # If memory changed by more than 50MB
+                        console.print(f"[cyan]GPU Memory delta during inference: {gpu_mem_diff:.1f}MB[/cyan]")
+                except:
+                    pass
             
             # Cache the response
             if len(MODEL_CACHE) > 20:  # Limit cache size
@@ -685,10 +715,10 @@ def main():
             )
 
             # --- DEBUG START ---
-            print(f"\n{'='*20} DEBUG INFO {'='*20}")
-            print(f"Intent Analysis: {intent_analysis}")
-            print(f"--- Full Prompt Sent to LLM: ---\n{full_prompt}")
-            print("---------------------------------")
+            # print(f"\n{'='*20} DEBUG INFO {'='*20}")
+            # print(f"Intent Analysis: {intent_analysis}")
+            # print(f"--- Full Prompt Sent to LLM: ---\n{full_prompt}")
+            # print("---------------------------------")
             # --- DEBUG END ---
 
             with Progress(
@@ -716,8 +746,8 @@ def main():
                 output = get_cached_response(full_prompt)
 
                 # --- DEBUG START ---
-                print(f"--- Raw Output Received from LLM: ---\n{output}")
-                print("---------------------------------")
+                # print(f"--- Raw Output Received from LLM: ---\n{output}")
+                # print("---------------------------------")
                 # --- DEBUG END ---
 
                 # Stop the timer thread and progress spinner
