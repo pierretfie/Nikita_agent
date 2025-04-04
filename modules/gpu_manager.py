@@ -168,8 +168,7 @@ class GPUManager:
                 'compute_capability': compute_capability,
                 'multi_processor_count': props.multi_processor_count,
                 'global_mem_size': total_mem,
-                            max_compute_units = props.multi_processor_count
-
+                'max_compute_units': max_compute_units,
                 'free_mem_size': free_mem,
                 'max_work_group_size': getattr(props, 'maxThreadsPerBlock', 1024), # Common CUDA limit
                 'llama_compatible': is_compatible,
