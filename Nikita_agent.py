@@ -39,8 +39,10 @@ sys.path.insert(0, SCRIPT_DIR)
 console = Console()
 console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
 console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
-print(user)
+user = input().strip()  # Use regular input for username
+console.print(f"[green]Username: {user}[/green]")
+
+# Import all required modules
 from modules.intent_analyzer import IntentAnalyzer
 from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
 from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
@@ -50,12 +52,6 @@ from modules.engagement_manager import extract_targets, suggest_attack_plan, eng
 from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
-
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
-print(user)
-
 
 # Create necessary directories
 os.makedirs(NIKITA_BASE_DIR, exist_ok=True)
