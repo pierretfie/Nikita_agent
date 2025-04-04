@@ -338,7 +338,7 @@ def suppress_stderr():
 # Initialize model with stderr suppression
 llm = None # Initialize llm to None
 
-# Start stderr suppression before any GPU/LLM initialization
+# Start stderr suppression before any imports or initialization
 with suppress_stderr():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -383,6 +383,10 @@ with suppress_stderr():
                 n_gpu_layers = 0
 
             # Initialize Llama model with verbose=False to minimize logging
+            # Set environment variable to suppress llama.cpp logs
+            os.environ['LLAMA_CPP_LOG_LEVEL'] = '0'
+            
+            # Initialize Llama with minimal logging
             llm = Llama(
                 model_path=MODEL_PATH,
                 n_ctx=system_params['context_limit'],

@@ -237,7 +237,7 @@ class GPUManager:
             platforms = cl.get_platforms()
             for platform in platforms:
                 # Get all GPU devices
-                devices = platform.get_devices(device_type=cl.device_type.GPU)
+                devices = platform.get_devices(device_type=cl.device_info.GPU)
                 for device in devices:
                     device_info = {
                         'device': device,
@@ -251,14 +251,13 @@ class GPUManager:
                         'global_mem_size': device.get_info(cl.device_info.GLOBAL_MEM_SIZE)
                     }
                     self.available_devices.append(device_info)
-        except Exception as e:
-            self._log(f"Error scanning for OpenCL devices: {e}", "error")
+        except Exception:
+            # Silently handle OpenCL errors
             self.opencl_available = False
             
             # Try to get CUDA device info if OpenCL fails
             cuda_info = self._get_cuda_device_info()
             if cuda_info:
-                self._log("Found CUDA device via PyTorch.")
                 self.cuda_device_info = cuda_info
 
     def initialize(self, device_index=None, preferred_gpu=None):
@@ -266,14 +265,12 @@ class GPUManager:
         try:
             # Detect GPU type
             self.gpu_type = self._detect_gpu_type()
-            self._log(f"Detected GPU type: {self.gpu_type}")
             
             # Get available devices
             self._get_available_devices()
             
             # Special handling for CUDA when OpenCL is not available
             if not self.opencl_available and self.gpu_type == 'cuda' and self.cuda_device_info:
-                self._log("OpenCL not available. Using CUDA via PyTorch directly.")
                 self.llama_compatible = True
                 # Use the layers assigned in _get_cuda_device_info
                 self.llama_layers_assigned = self.cuda_device_info['llama_layers_assigned']
@@ -281,11 +278,8 @@ class GPUManager:
                 return True
             
             if not self.available_devices:
-                self._log("No GPU devices found!")
-                
                 # Check if we have CUDA but OpenCL failed
                 if self.gpu_type == 'cuda' and torch.cuda.is_available():
-                    self._log("OpenCL not available, but CUDA found. Using CUDA via PyTorch directly.")
                     self.llama_compatible = True
                     
                     # Get the T4 info if available
@@ -317,7 +311,6 @@ class GPUManager:
                 selected_device = self.available_devices[0]
             
             if not selected_device:
-                self._log("No suitable GPU device found!")
                 return False
 
             self.device = selected_device['device']
@@ -334,40 +327,19 @@ class GPUManager:
 
             # Test GPU with matrix multiplication
             if not self._test_gpu():
-                self._log("GPU test failed!")
                 return False
                 
             # Check Llama compatibility
             self.llama_compatible = self._check_llama_compatibility()
             if not self.llama_compatible:
-                self._log("Warning: This GPU may not be used by Llama. Workload splitting will be enabled.")
                 # Start the worker thread for workload splitting
                 self._start_worker_thread()
 
             self.initialized = True
-            self._log(f"GPU initialized successfully! Using {selected_device['name']} from {selected_device['vendor']}")
             return True
 
-        except Exception as e:
-            self._log(f"Error initializing GPU with OpenCL: {e}", "error")
-            
-            # Fall back to CUDA via PyTorch if available
-            if self.gpu_type == 'cuda' and torch.cuda.is_available():
-                self._log("Falling back to CUDA via PyTorch.")
-                self.llama_compatible = True
-                
-                # Get the T4 info if available
-                cuda_info = self._get_cuda_device_info()
-                if cuda_info:
-                    self.cuda_device_info = cuda_info
-                    self.llama_layers_assigned = cuda_info['llama_layers_assigned']
-                else:
-                    # Default if no detailed info available
-                    self.llama_layers_assigned = -1  # Use all layers as default
-                    
-                self.initialized = True
-                return True
-                
+        except Exception:
+            # Silently handle initialization errors
             return False
 
     def _test_gpu(self):
