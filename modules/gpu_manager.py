@@ -186,26 +186,16 @@ class GPUManager:
                 utilization = 0.0
             
             # Calculate appropriate layer assignment based on GPU memory
+            # T4 has 16GB VRAM, determine the proper number of layers
             gpu_memory_gb = device_props.total_memory / (1024**3)
             
-            # Let PyTorch tell us about the device capabilities
-            compute_capability = f"{device_props.major}.{device_props.minor}"
-            compute_units = device_props.multi_processor_count
+            # Determine Llama layers assignment based on GPU memory
             
-            # Get max work group size for Tesla T4
-            max_work_group_size = 1024  # Default for most CUDA devices
-            if gpu_memory_gb >= 15 and compute_units >= 40:
-                # Tesla T4 specific work group size
-                max_work_group_size = 1024
-                self._log(f"Tesla T4 detected - Max Work Group Size: {max_work_group_size}")
-            
-            # Determine Llama layers based on available memory and compute capability
-            # Tesla T4 has 16GB VRAM and 40 compute units
-            if gpu_memory_gb >= 15 and compute_units >= 40:
-                # For high-end GPUs like T4 with lots of VRAM and compute units
+            if gpu_memory_gb >= 24:
+                # For high-end GPUs with lots of VRAM (A100, etc)
                 llama_layers = -1  # Use all layers
             elif gpu_memory_gb >= 12:
-                # For GPUs with good VRAM
+                # For GPUs with good VRAM (RTX 3080, etc)
                 llama_layers = -1  # Use all layers
             elif gpu_memory_gb >= 8:
                 # For GPUs with decent VRAM
@@ -223,11 +213,10 @@ class GPUManager:
                 'vendor': 'NVIDIA',
                 'version': f"CUDA {torch.version.cuda}",
                 'driver_version': torch.version.cuda,
-                'max_compute_units': compute_units,
+                'max_compute_units': device_props.multi_processor_count,
                 'global_mem_size': device_props.total_memory,
-                'max_work_group_size': max_work_group_size,
+                'max_work_group_size': 1024,  # Default for most CUDA devices
                 'gpu_type': 'cuda',
-                'compute_capability': compute_capability,
                 'llama_compatible': True,
                 'llama_layers_assigned': llama_layers,
                 'utilization': utilization
