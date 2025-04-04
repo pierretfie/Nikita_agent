@@ -641,7 +641,7 @@ def main():
             if history_enabled:
                 user_input = get_input_with_history()
             else:
-                user_input = input().strip().
+                user_input = input().strip()
 
             # Handle empty input by continuing to the next loop iteration
             if not user_input:
