@@ -33,7 +33,11 @@ COMMAND_HISTORY_FILE = os.path.join(NIKITA_BASE_DIR, "command_history")
 # Construct absolute paths to scripts (in the same directory as Nikita_agent.py)
 PROMPT_TEMPLATE_FILE = os.path.join(SCRIPT_DIR, "modules", "prompt_template.txt")
 FINE_TUNING_FILE = os.path.join(SCRIPT_DIR, "modules", "fine_tuning.json")
-
+console = Console()
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+user = input().strip()
+print(user)
 # Add the script directory to the Python path
 sys.path.insert(0, SCRIPT_DIR)
 from modules.intent_analyzer import IntentAnalyzer
@@ -46,11 +50,7 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
 
-console = Console()
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
-print(user)
+
 console = Console()
 
 # Create necessary directories
@@ -247,7 +247,6 @@ engagement_memory = {
 
 # ===============================
 # === Model Setup ===
-
 console.print("🧠 [bold red]Waking Nikita 🐺...[/bold red]")
 
 # Optimize system resources
