@@ -39,7 +39,20 @@ sys.path.insert(0, SCRIPT_DIR)
 console = Console()
 console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
 console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()  # Use regular input for username
+
+# Use a more compatible input method for Colab
+try:
+    import IPython
+    if IPython.get_ipython() is not None:
+        # We're in a Jupyter/Colab environment
+        user = input().strip()
+    else:
+        # We're in a regular Python environment
+        user = input().strip()
+except ImportError:
+    # Fallback for regular Python
+    user = input().strip()
+
 console.print(f"[green]Username: {user}[/green]")
 
 # Import all required modules
