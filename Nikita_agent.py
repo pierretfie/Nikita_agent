@@ -345,6 +345,7 @@ with suppress_stderr():
         try:
             # Initialize GPU manager for parallel processing
             gpu_manager = GPUManager()
+            gpu_manager.set_suppress_output(True)  # Suppress GPU manager logs
             gpu_manager.initialize()
             device_info = gpu_manager.get_device_info()
             

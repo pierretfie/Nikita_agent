@@ -11,6 +11,7 @@ import threading
 import queue
 import torch
 import gc
+import contextlib
 
 console = Console()
 
@@ -31,6 +32,7 @@ class GPUManager:
         self.running = False  # Flag to control worker thread
         self.opencl_available = True  # Flag to indicate if OpenCL is available
         self.cuda_device_info = None  # Store CUDA device info if OpenCL fails but CUDA is available
+        self._suppress_output = False
         
         # Kernel source for GPU-only operations
         self.kernel_source = """
@@ -53,6 +55,22 @@ class GPUManager:
             C[row * matrix_dim + col] = sum;
         }
         """
+
+    def _log(self, message, level="info"):
+        """Controlled logging method that respects output suppression"""
+        if self._suppress_output:
+            return
+            
+        if level == "info":
+            console.print(f"[green]{message}[/green]")
+        elif level == "warning":
+            console.print(f"[yellow]{message}[/yellow]")
+        elif level == "error":
+            console.print(f"[red]{message}[/red]")
+
+    def set_suppress_output(self, suppress=True):
+        """Set whether to suppress output"""
+        self._suppress_output = suppress
 
     def _detect_gpu_type(self):
         """Detect the type of GPU available in the system"""
@@ -93,7 +111,7 @@ class GPUManager:
                 
             return 'unknown'
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not detect GPU type: {e}[/yellow]")
+            self._log(f"Warning: Could not detect GPU type: {e}", "warning")
             return 'unknown'
 
     def _check_llama_compatibility(self):
@@ -101,7 +119,7 @@ class GPUManager:
         try:
             # Check if PyTorch is available and CUDA is supported
             if not torch.cuda.is_available():
-                console.print("[yellow]PyTorch CUDA is not available. Llama may not use this GPU.[/yellow]")
+                self._log("PyTorch CUDA is not available. Llama may not use this GPU.", "warning")
                 return False
                 
             # Check GPU memory
@@ -109,7 +127,7 @@ class GPUManager:
                 # For NVIDIA GPUs, check CUDA memory
                 gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)  # in GB
                 if gpu_memory < 4:  # Llama typically needs at least 4GB
-                    console.print(f"[yellow]GPU memory ({gpu_memory:.1f}GB) may be insufficient for Llama.[/yellow]")
+                    self._log(f"GPU memory ({gpu_memory:.1f}GB) may be insufficient for Llama.", "warning")
                     return False
                     
             # Check OpenCL capabilities
@@ -117,18 +135,18 @@ class GPUManager:
                 # Check if the device supports double precision
                 double_support = self.device.get_info(cl.device_info.DOUBLE_FP_CONFIG)
                 if double_support == 0:
-                    console.print("[yellow]GPU does not support double precision. Llama may not use this GPU.[/yellow]")
+                    self._log("GPU does not support double precision. Llama may not use this GPU.", "warning")
                     return False
                     
                 # Check compute capability
                 compute_units = self.device.get_info(cl.device_info.MAX_COMPUTE_UNITS)
                 if compute_units < 8:  # Arbitrary threshold
-                    console.print(f"[yellow]GPU compute capability ({compute_units} units) may be insufficient for Llama.[/yellow]")
+                    self._log(f"GPU compute capability ({compute_units} units) may be insufficient for Llama.", "warning")
                     return False
             
             return True
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not check Llama compatibility: {e}[/yellow]")
+            self._log(f"Warning: Could not check Llama compatibility: {e}", "warning")
             return False
 
     def _get_gpu_utilization(self):
@@ -140,7 +158,7 @@ class GPUManager:
                 return (mem_used / mem_info) * 100
             return 0
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not get GPU utilization: {e}[/yellow]")
+            self._log(f"Warning: Could not get GPU utilization: {e}", "warning")
             return 0
 
     def _get_cuda_device_info(self):
@@ -174,8 +192,8 @@ class GPUManager:
             if 'T4' in device_props.name:
                 # For T4 (default in Colab), use all layers
                 llama_layers = -1  # Use all layers (will be interpreted correctly by llama-cpp)
-                console.print(f"[green]Detected Google Colab T4 GPU with {gpu_memory_gb:.1f}GB VRAM[/green]")
-                console.print("[green]Setting to use all GPU layers for maximum performance[/green]")
+                self._log(f"Detected Google Colab T4 GPU with {gpu_memory_gb:.1f}GB VRAM")
+                self._log("Setting to use all GPU layers for maximum performance")
             elif gpu_memory_gb >= 24:
                 # For high-end GPUs with lots of VRAM (A100, etc)
                 llama_layers = -1  # Use all layers
@@ -209,7 +227,7 @@ class GPUManager:
             
             return device_info
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not get CUDA device info: {e}[/yellow]")
+            self._log(f"Warning: Could not get CUDA device info: {e}", "warning")
             return None
 
     def _get_available_devices(self):
@@ -234,13 +252,13 @@ class GPUManager:
                     }
                     self.available_devices.append(device_info)
         except Exception as e:
-            console.print(f"[yellow]Error scanning for OpenCL devices: {e}[/yellow]")
+            self._log(f"Error scanning for OpenCL devices: {e}", "error")
             self.opencl_available = False
             
             # Try to get CUDA device info if OpenCL fails
             cuda_info = self._get_cuda_device_info()
             if cuda_info:
-                console.print("[green]Found CUDA device via PyTorch.[/green]")
+                self._log("Found CUDA device via PyTorch.")
                 self.cuda_device_info = cuda_info
 
     def initialize(self, device_index=None, preferred_gpu=None):
@@ -248,14 +266,14 @@ class GPUManager:
         try:
             # Detect GPU type
             self.gpu_type = self._detect_gpu_type()
-            console.print(f"[green]Detected GPU type: {self.gpu_type}[/green]")
+            self._log(f"Detected GPU type: {self.gpu_type}")
             
             # Get available devices
             self._get_available_devices()
             
             # Special handling for CUDA when OpenCL is not available
             if not self.opencl_available and self.gpu_type == 'cuda' and self.cuda_device_info:
-                console.print("[yellow]OpenCL not available. Using CUDA via PyTorch directly.[/yellow]")
+                self._log("OpenCL not available. Using CUDA via PyTorch directly.")
                 self.llama_compatible = True
                 # Use the layers assigned in _get_cuda_device_info
                 self.llama_layers_assigned = self.cuda_device_info['llama_layers_assigned']
@@ -263,11 +281,11 @@ class GPUManager:
                 return True
             
             if not self.available_devices:
-                console.print("[red]No GPU devices found![/red]")
+                self._log("No GPU devices found!")
                 
                 # Check if we have CUDA but OpenCL failed
                 if self.gpu_type == 'cuda' and torch.cuda.is_available():
-                    console.print("[yellow]OpenCL not available, but CUDA found. Using CUDA via PyTorch directly.[/yellow]")
+                    self._log("OpenCL not available, but CUDA found. Using CUDA via PyTorch directly.")
                     self.llama_compatible = True
                     
                     # Get the T4 info if available
@@ -299,7 +317,7 @@ class GPUManager:
                 selected_device = self.available_devices[0]
             
             if not selected_device:
-                console.print("[red]No suitable GPU device found![/red]")
+                self._log("No suitable GPU device found!")
                 return False
 
             self.device = selected_device['device']
@@ -316,26 +334,26 @@ class GPUManager:
 
             # Test GPU with matrix multiplication
             if not self._test_gpu():
-                console.print("[red]GPU test failed![/red]")
+                self._log("GPU test failed!")
                 return False
                 
             # Check Llama compatibility
             self.llama_compatible = self._check_llama_compatibility()
             if not self.llama_compatible:
-                console.print("[yellow]Warning: This GPU may not be used by Llama. Workload splitting will be enabled.[/yellow]")
+                self._log("Warning: This GPU may not be used by Llama. Workload splitting will be enabled.")
                 # Start the worker thread for workload splitting
                 self._start_worker_thread()
 
             self.initialized = True
-            console.print(f"[green]GPU initialized successfully! Using {selected_device['name']} from {selected_device['vendor']}[/green]")
+            self._log(f"GPU initialized successfully! Using {selected_device['name']} from {selected_device['vendor']}")
             return True
 
         except Exception as e:
-            console.print(f"[yellow]Error initializing GPU with OpenCL: {e}[/yellow]")
+            self._log(f"Error initializing GPU with OpenCL: {e}", "error")
             
             # Fall back to CUDA via PyTorch if available
             if self.gpu_type == 'cuda' and torch.cuda.is_available():
-                console.print("[yellow]Falling back to CUDA via PyTorch.[/yellow]")
+                self._log("Falling back to CUDA via PyTorch.")
                 self.llama_compatible = True
                 
                 # Get the T4 info if available
@@ -418,13 +436,13 @@ class GPUManager:
             # Verify results
             expected = np.matmul(A, B)
             if not np.allclose(C, expected, atol=1e-2):
-                console.print("[red]Matrix multiplication test failed![/red]")
+                self._log("Matrix multiplication test failed!")
                 return False
 
             return True
 
         except Exception as e:
-            console.print(f"[red]Error during GPU test: {e}[/red]")
+            self._log(f"Error during GPU test: {e}", "error")
             return False
 
     def _start_worker_thread(self):
@@ -436,7 +454,7 @@ class GPUManager:
         self.worker_thread = threading.Thread(target=self._worker_loop)
         self.worker_thread.daemon = True
         self.worker_thread.start()
-        console.print("[green]Started worker thread for workload processing[/green]")
+        self._log("Started worker thread for workload processing")
         
     def _worker_loop(self):
         """Worker thread loop for processing workload"""
@@ -456,7 +474,7 @@ class GPUManager:
                 # No tasks available, continue waiting
                 continue
             except Exception as e:
-                console.print(f"[red]Error in worker thread: {e}[/red]")
+                self._log(f"Error in worker thread: {e}", "error")
                 
     def _process_task(self, task):
         """Process a workload task"""
@@ -482,9 +500,9 @@ class GPUManager:
                     if 'callback' in task and callable(task['callback']):
                         task['callback'](result)
             else:
-                console.print(f"[yellow]Unknown task type: {task_type}[/yellow]")
+                self._log(f"Unknown task type: {task_type}", "warning")
         except Exception as e:
-            console.print(f"[red]Error processing task: {e}[/red]")
+            self._log(f"Error processing task: {e}", "error")
             
     def _matrix_mul(self, A, B):
         """Perform matrix multiplication on the GPU"""
@@ -537,7 +555,7 @@ class GPUManager:
             
             return C
         except Exception as e:
-            console.print(f"[red]Error in matrix multiplication: {e}[/red]")
+            self._log(f"Error in matrix multiplication: {e}", "error")
             return None
             
     def _process_tensor(self, tensor, operation):
@@ -555,18 +573,18 @@ class GPUManager:
             elif operation == 'mean':
                 result = np.mean(tensor)
             else:
-                console.print(f"[yellow]Unsupported tensor operation: {operation}[/yellow]")
+                self._log(f"Unsupported tensor operation: {operation}", "warning")
                 return None
                 
             return result
         except Exception as e:
-            console.print(f"[red]Error in tensor operation: {e}[/red]")
+            self._log(f"Error in tensor operation: {e}", "error")
             return None
             
     def add_task(self, task_type, data, callback=None):
         """Add a task to the workload queue"""
         if not self.initialized:
-            console.print("[red]GPU manager not initialized![/red]")
+            self._log("GPU manager not initialized!", "warning")
             return False
             
         if not self.llama_compatible:
@@ -579,7 +597,7 @@ class GPUManager:
             self.work_queue.put(task)
             return True
         else:
-            console.print("[yellow]GPU is Llama-compatible, tasks will be processed by Llama directly.[/yellow]")
+            self._log("GPU is Llama-compatible, tasks will be processed by Llama directly.")
             return False
             
     def get_device_info(self):
@@ -607,7 +625,7 @@ class GPUManager:
                 'utilization': self._get_gpu_utilization()
             }
         except Exception as e:
-            console.print(f"[yellow]Error getting device info: {e}[/yellow]")
+            self._log(f"Error getting device info: {e}", "error")
             return None
 
     def cleanup(self):
