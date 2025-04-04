@@ -38,12 +38,7 @@ FINE_TUNING_FILE = os.path.join(SCRIPT_DIR, "modules", "fine_tuning.json")
 
 
 from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
-sys.path.insert(0, SCRIPT_DIR)
-console = Console()
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
-print(user)
+
 from modules.intent_analyzer import IntentAnalyzer
 
 from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
@@ -55,9 +50,14 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
 
-
+omport
 console = Console()
-
+sys.path.insert(0, SCRIPT_DIR)
+console = Console()
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+user = input().strip()
+print(user)
 # Create necessary directories
 os.makedirs(NIKITA_BASE_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
