@@ -343,7 +343,6 @@ class GPUManager:
         try:
             # Adjust matrix size based on GPU type and available memory
             if self.gpu_type == 'cuda':
-                console.print('CUDAAAAAAA')
                 # NVIDIA GPUs typically have more VRAM
                 matrix_size = 128
             elif self.gpu_type == 'amd':
