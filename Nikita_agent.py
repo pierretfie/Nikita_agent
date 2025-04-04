@@ -14,18 +14,8 @@ import sys
 import warnings
 import contextlib
 import torch
-import getpass
-
-# Import all required modules
-from modules.intent_analyzer import IntentAnalyzer
-from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
-from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
-from modules.context_optimizer import ContextOptimizer
-from modules.command_handler import run_command
-from modules.engagement_manager import extract_targets, suggest_attack_plan, engagement_memory
-from modules.reasoning_engine import ReasoningEngine
-from modules.tool_manager import ToolManager
-from modules.gpu_manager import GPUManager
+from rich.console import Console
+import getpass  # Import getpass for password input
 
 # Determine the directory of the main script (Nikita_agent.py)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,14 +37,27 @@ FINE_TUNING_FILE = os.path.join(SCRIPT_DIR, "modules", "fine_tuning.json")
 # Add the script directory to the Python path
 sys.path.insert(0, SCRIPT_DIR)
 
-# Initialize console after all imports
 console = Console()
-
-# Now handle user input
 console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
 console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
+user = input().strip()  # Use regular input for username
 console.print(f"[green]Username: {user}[/green]")
+
+# Import all required modules
+from modules.intent_analyzer import IntentAnalyzer
+from modules.resource_management import get_system_info, get_dynamic_params, optimize_memory_resources, optimize_cpu_usage, prewarm_model
+from modules.history_manager import setup_command_history, save_command_history, get_input_with_history, load_chat_history, save_chat_history
+from modules.context_optimizer import ContextOptimizer
+from modules.command_handler import run_command
+from modules.engagement_manager import extract_targets, suggest_attack_plan, engagement_memory
+from modules.reasoning_engine import ReasoningEngine
+from modules.tool_manager import ToolManager
+from modules.gpu_manager import GPUManager
+
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+password = getpass.getpass()  # Use getpass for password input
+console.print("[green]Password accepted[/green]")
 
 # Create necessary directories
 os.makedirs(NIKITA_BASE_DIR, exist_ok=True)
