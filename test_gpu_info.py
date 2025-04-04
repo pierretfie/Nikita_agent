@@ -83,7 +83,6 @@ def get_gpu_details(device_id: int = 0):
             "Allocated Memory (PyTorch)": format_bytes(mem_allocated, "B"),
             "Reserved Memory (PyTorch)": format_bytes(mem_reserved, "B"),
             "Memory Utilization (Allocated)": f"{utilization:.1f}%",
-            "Shared Memory per Block": format_bytes(props.shared_mem_per_block, "B"),
             "Max Threads per Multi-Processor": str(props.max_threads_per_multi_processor),
             "Warp Size": str(props.warp_size),
         }
