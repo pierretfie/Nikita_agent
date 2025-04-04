@@ -281,15 +281,16 @@ def is_gpu_powerful(device_info):
         
     # Memory check (in bytes)
     memory_gb = device_info['global_mem_size'] / (1024**3)
-    memory_powerful = memory_gb >= 8  # 8GB or more is considered powerful
     
-    # Compute units check
-    compute_units = device_info['max_compute_units']
-    compute_powerful = compute_units >= 16  # 16 or more compute units is powerful
-    
-    # Work group size check
-    work_group_size = device_info['max_work_group_size']
-    work_group_powerful = work_group_size >= 256  # 256 or more is powerful
+    # Special handling for Tesla T4
+    if "Tesla T4" in device_info['name']:
+        memory_powerful = True  # T4 has 16GB VRAM
+        compute_powerful = True  # T4 has 40 compute units
+        work_group_powerful = True  # T4 has good work group size
+    else:
+        memory_powerful = memory_gb >= 8  # 8GB or more is considered powerful
+        compute_powerful = device_info['max_compute_units'] >= 16  # 16 or more compute units is powerful
+        work_group_powerful = device_info['max_work_group_size'] >= 256  # 256 or more is powerful
     
     # Overall assessment
     is_powerful = (
@@ -301,8 +302,8 @@ def is_gpu_powerful(device_info):
     return {
         'is_powerful': is_powerful,
         'memory_gb': memory_gb,
-        'compute_units': compute_units,
-        'work_group_size': work_group_size,
+        'compute_units': device_info['max_compute_units'],
+        'work_group_size': device_info['max_work_group_size'],
         'details': {
             'memory_powerful': memory_powerful,
             'compute_powerful': compute_powerful,

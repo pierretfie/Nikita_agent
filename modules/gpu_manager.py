@@ -186,26 +186,31 @@ class GPUManager:
                 utilization = 0.0
             
             # Calculate appropriate layer assignment based on GPU memory
-            # T4 has 16GB VRAM, determine the proper number of layers
             gpu_memory_gb = device_props.total_memory / (1024**3)
             
-            # Determine Llama layers assignment based on GPU memory
-            
-            if gpu_memory_gb >= 24:
-                # For high-end GPUs with lots of VRAM (A100, etc)
-                llama_layers = -1  # Use all layers
-            elif gpu_memory_gb >= 12:
-                # For GPUs with good VRAM (RTX 3080, etc)
-                llama_layers = -1  # Use all layers
-            elif gpu_memory_gb >= 8:
-                # For GPUs with decent VRAM
-                llama_layers = 32
-            elif gpu_memory_gb >= 4:
-                # For GPUs with limited VRAM
-                llama_layers = 24
+            # Special handling for Tesla T4
+            if "Tesla T4" in device_props.name:
+                # Tesla T4 has 16GB VRAM and 40 compute units
+                llama_layers = -1  # Use all layers for T4
+                compute_units = 40  # Fixed value for T4
             else:
-                # For GPUs with very limited VRAM
-                llama_layers = 16
+                # Determine Llama layers assignment based on GPU memory for other GPUs
+                if gpu_memory_gb >= 24:
+                    # For high-end GPUs with lots of VRAM (A100, etc)
+                    llama_layers = -1  # Use all layers
+                elif gpu_memory_gb >= 12:
+                    # For GPUs with good VRAM (RTX 3080, etc)
+                    llama_layers = -1  # Use all layers
+                elif gpu_memory_gb >= 8:
+                    # For GPUs with decent VRAM
+                    llama_layers = 32
+                elif gpu_memory_gb >= 4:
+                    # For GPUs with limited VRAM
+                    llama_layers = 24
+                else:
+                    # For GPUs with very limited VRAM
+                    llama_layers = 16
+                compute_units = device_props.multi_processor_count
             
             # Format the device info similar to OpenCL format
             device_info = {
@@ -213,7 +218,7 @@ class GPUManager:
                 'vendor': 'NVIDIA',
                 'version': f"CUDA {torch.version.cuda}",
                 'driver_version': torch.version.cuda,
-                'max_compute_units': device_props.multi_processor_count,
+                'max_compute_units': compute_units,
                 'global_mem_size': device_props.total_memory,
                 'max_work_group_size': 1024,  # Default for most CUDA devices
                 'gpu_type': 'cuda',
