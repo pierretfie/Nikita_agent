@@ -863,18 +863,8 @@ def main():
                     total_time = time.time() - start_time
                     console.print(f"⏱️ {total_time:.1f}s")
             console.print("[yellow]Processing interrupted by user[/yellow]")
-        except Exception as e:
-            # Make sure to stop the timer if it exists in this scope
-            if 'timer_running' in locals():
-                timer_running = False
-                if 'timer_thread' in locals():
-                    timer_thread.join(timeout=0.2)
-                # Display total elapsed time
-                if 'start_time' in locals():
-                    total_time = time.time() - start_time
-                    console.print(f"⏱️ {total_time:.1f}s")
-            console.print(f"[red]Error during command processing:[/red] {str(e)}")
-        except KeyboardInterrupt:
+            
+            # Handle the interruption gracefully
             console.print("\n[yellow]Command interrupted. Press Ctrl+C again to exit or Enter to continue.[/yellow]")
             try:
                 # Give the user a chance to exit with another Ctrl+C or continue
