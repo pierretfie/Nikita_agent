@@ -385,9 +385,10 @@ with suppress_stderr():
             # Initialize Llama model with verbose=False to minimize logging
             # Set environment variable to suppress llama.cpp logs
             os.environ['LLAMA_CPP_LOG_LEVEL'] = '0'
-            
+            console
             # Initialize Llama with minimal logging
             llm = Llama(
+
                 model_path=MODEL_PATH,
                 n_ctx=system_params['context_limit'],
                 n_threads=system_params['n_threads'],
