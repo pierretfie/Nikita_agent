@@ -636,6 +636,7 @@ def main():
         try:
             console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
             console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+            prompt = input
 
             # Get user input with readline support (history, editing)
             if history_enabled:
@@ -717,10 +718,10 @@ def main():
             )
 
             # --- DEBUG START ---
-            # print(f"\n{'='*20} DEBUG INFO {'='*20}")
-            # print(f"Intent Analysis: {intent_analysis}")
-            # print(f"--- Full Prompt Sent to LLM: ---\n{full_prompt}")
-            # print("---------------------------------")
+            print(f"\n{'='*20} DEBUG INFO {'='*20}")
+            print(f"Intent Analysis: {intent_analysis}")
+            print(f"--- Full Prompt Sent to LLM: ---\n{full_prompt}")
+            print("---------------------------------")
             # --- DEBUG END ---
 
             with Progress(
