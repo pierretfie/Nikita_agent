@@ -51,6 +51,8 @@ from modules.engagement_manager import extract_targets, suggest_attack_plan, eng
 from modules.reasoning_engine import ReasoningEngine
 from modules.tool_manager import ToolManager
 from modules.gpu_manager import GPUManager
+from rich.console import Console
+
 console = Console()
 console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
 console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
