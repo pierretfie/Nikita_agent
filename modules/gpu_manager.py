@@ -29,6 +29,8 @@ class GPUManager:
         self.work_queue = queue.Queue()  # Queue for workload distribution
         self.worker_thread = None  # Thread for processing workload
         self.running = False  # Flag to control worker thread
+        self.opencl_available = True  # Flag to indicate if OpenCL is available
+        self.cuda_device_info = None  # Store CUDA device info if OpenCL fails but CUDA is available
         
         # Kernel source for GPU-only operations
         self.kernel_source = """
@@ -55,6 +57,10 @@ class GPUManager:
     def _detect_gpu_type(self):
         """Detect the type of GPU available in the system"""
         try:
+            # First check if CUDA is available through PyTorch
+            if torch.cuda.is_available():
+                return 'cuda'
+                
             # Check for NVIDIA GPU
             if os.path.exists('/proc/driver/nvidia'):
                 return 'cuda'
@@ -137,6 +143,49 @@ class GPUManager:
             console.print(f"[yellow]Warning: Could not get GPU utilization: {e}[/yellow]")
             return 0
 
+    def _get_cuda_device_info(self):
+        """Get CUDA device info using PyTorch when OpenCL is not available"""
+        try:
+            if not torch.cuda.is_available():
+                return None
+                
+            device_count = torch.cuda.device_count()
+            if device_count == 0:
+                return None
+                
+            # Get properties of the first CUDA device
+            device_props = torch.cuda.get_device_properties(0)
+            
+            # Get memory usage for utilization calculation
+            try:
+                # Try to get memory utilization
+                mem_allocated = torch.cuda.memory_allocated(0)
+                mem_reserved = torch.cuda.memory_reserved(0)
+                utilization = 100.0 * mem_allocated / device_props.total_memory
+            except:
+                # Fallback if memory stats fail
+                utilization = 0.0
+            
+            # Format the device info similar to OpenCL format
+            device_info = {
+                'name': device_props.name,
+                'vendor': 'NVIDIA',
+                'version': f"CUDA {torch.version.cuda}",
+                'driver_version': torch.version.cuda,
+                'max_compute_units': device_props.multi_processor_count,
+                'global_mem_size': device_props.total_memory,
+                'max_work_group_size': 1024,  # Default for most CUDA devices
+                'gpu_type': 'cuda',
+                'llama_compatible': True,
+                'llama_layers_assigned': 32,  # Default value for CUDA T4
+                'utilization': utilization
+            }
+            
+            return device_info
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not get CUDA device info: {e}[/yellow]")
+            return None
+
     def _get_available_devices(self):
         """Scan for available GPU devices"""
         self.available_devices = []
@@ -159,7 +208,14 @@ class GPUManager:
                     }
                     self.available_devices.append(device_info)
         except Exception as e:
-            console.print(f"[red]Error scanning for devices: {e}[/red]")
+            console.print(f"[yellow]Error scanning for OpenCL devices: {e}[/yellow]")
+            self.opencl_available = False
+            
+            # Try to get CUDA device info if OpenCL fails
+            cuda_info = self._get_cuda_device_info()
+            if cuda_info:
+                console.print("[green]Found CUDA device via PyTorch.[/green]")
+                self.cuda_device_info = cuda_info
 
     def initialize(self, device_index=None, preferred_gpu=None):
         """Initialize GPU with support for multiple GPU types"""
@@ -171,8 +227,25 @@ class GPUManager:
             # Get available devices
             self._get_available_devices()
             
+            # Special handling for CUDA when OpenCL is not available
+            if not self.opencl_available and self.gpu_type == 'cuda' and self.cuda_device_info:
+                console.print("[yellow]OpenCL not available. Using CUDA via PyTorch directly.[/yellow]")
+                self.llama_compatible = True
+                self.llama_layers_assigned = 32  # Default value for CUDA T4
+                self.initialized = True
+                return True
+            
             if not self.available_devices:
                 console.print("[red]No GPU devices found![/red]")
+                
+                # Check if we have CUDA but OpenCL failed
+                if self.gpu_type == 'cuda' and torch.cuda.is_available():
+                    console.print("[yellow]OpenCL not available, but CUDA found. Using CUDA via PyTorch directly.[/yellow]")
+                    self.llama_compatible = True
+                    self.llama_layers_assigned = 32  # Default value for CUDA T4
+                    self.initialized = True
+                    return True
+                    
                 return False
 
             # Select device based on preference or use the first available
@@ -222,7 +295,16 @@ class GPUManager:
             return True
 
         except Exception as e:
-            console.print(f"[red]Error initializing GPU: {e}[/red]")
+            console.print(f"[yellow]Error initializing GPU with OpenCL: {e}[/yellow]")
+            
+            # Fall back to CUDA via PyTorch if available
+            if self.gpu_type == 'cuda' and torch.cuda.is_available():
+                console.print("[yellow]Falling back to CUDA via PyTorch.[/yellow]")
+                self.llama_compatible = True
+                self.llama_layers_assigned = 32  # Default for CUDA
+                self.initialized = True
+                return True
+                
             return False
 
     def _test_gpu(self):
@@ -457,10 +539,15 @@ class GPUManager:
             
     def get_device_info(self):
         """Get information about the current GPU device"""
-        if not self.device:
+        if not self.device and not self.cuda_device_info:
             return None
             
         try:
+            # If using CUDA directly (OpenCL failed or not available)
+            if self.cuda_device_info:
+                return self.cuda_device_info
+                
+            # If using OpenCL
             return {
                 'name': self.device.get_info(cl.device_info.NAME),
                 'vendor': self.device.get_info(cl.device_info.VENDOR),
@@ -475,7 +562,7 @@ class GPUManager:
                 'utilization': self._get_gpu_utilization()
             }
         except Exception as e:
-            console.print(f"[red]Error getting device info: {e}[/red]")
+            console.print(f"[yellow]Error getting device info: {e}[/yellow]")
             return None
 
     def cleanup(self):

@@ -362,11 +362,19 @@ with suppress_stderr():
                 console.print(f"[green]  • Global Memory: {device_info['global_mem_size'] / (1024*1024):.1f} MB[/green]")
                 console.print(f"[green]  • Max Work Group Size: {device_info['max_work_group_size']}[/green]")
                 console.print(f"[green]  • Parallel Processing: Enabled[/green]")
+                
+                # Set n_gpu_layers based on device availability and CUDA compatibility
+                n_gpu_layers = 0  # Default to CPU-only
+                if device_info['gpu_type'] == 'cuda' and device_info['llama_compatible']:
+                    # Use GPU for compatible CUDA devices
+                    console.print(f"[green]  • Using GPU acceleration: {device_info['llama_layers_assigned']} layers[/green]")
+                    n_gpu_layers = device_info['llama_layers_assigned']
             else:
-                console.print("[red]Error getting device info. Cannot configure parallel processing.[/red]")
+                console.print("[yellow]Limited device info available. Using CPU-only mode.[/yellow]")
                 # Set default splits if device info is unavailable
                 work_split_ratio = 0.5
                 tensor_split = [0.5, 0.5]
+                n_gpu_layers = 0
 
             # Initialize Llama model
             llm = Llama(
@@ -383,7 +391,7 @@ with suppress_stderr():
                 seed=42,
                 embedding=False,
                 rope_scaling={"type": "linear", "factor": 0.25},
-                n_gpu_layers=0,  # Set to 0 since GPU is not used for Llama layers
+                n_gpu_layers=n_gpu_layers,  # Use n_gpu_layers from GPU detection
                 vocab_only=False,
                 # tensor_split=tensor_split, # Remove, not relevant for n_gpu_layers=0
                 logits_all=False,
@@ -401,6 +409,7 @@ with suppress_stderr():
             )
             
             # Prewarm the model AFTER successful initialization
+            console.print("[cyan]🔥 Prewarming model...[/cyan]")
             prewarm_duration = prewarm_model(llm, base_prompt="You are Nikita, an AI Security Assistant.")
             console.print(f"✅ [green] Model prewarmed in {prewarm_duration:.2f} seconds[/green]")
 
@@ -594,7 +603,7 @@ def main():
     while True:
         try:
             console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-            console.print(f"[bold cyan]└─>[/bold cyan] ")
+            console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
 
             # Get user input with readline support (history, editing)
             if history_enabled:
