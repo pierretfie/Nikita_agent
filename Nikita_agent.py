@@ -594,7 +594,8 @@ def main():
     while True:
         try:
             console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-            console.print(f"[bold cyan]└─>[/bold cyan] ", end="")
+            sys.stdout.write("[bold cyan]└─>[/bold cyan] ")  # Avoids Colab input issue
+            sys.stdout.flush()  # Ensures prompt appears immediately
 
             # Get user input with readline support (history, editing)
             if history_enabled:
