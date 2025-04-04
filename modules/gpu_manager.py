@@ -113,7 +113,6 @@ class GPUManager:
         except Exception as e:
             self._log(f"Warning: Could not detect GPU type: {e}", "warning")
             return 'unknown'
-        console.print('CUDAAAAAAA')
 
     def _check_llama_compatibility(self):
         """Check if the GPU is compatible with Llama"""
