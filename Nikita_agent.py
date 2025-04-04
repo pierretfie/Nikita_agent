@@ -385,6 +385,11 @@ with suppress_stderr():
             # Initialize Llama model with verbose=False to minimize logging
             # Set environment variable to suppress llama.cpp logs
             os.environ['LLAMA_CPP_LOG_LEVEL'] = '-1'
+            console = Console()
+            console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+            console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+            user = input().strip()
+            print(user)
             # Initialize Llama with minimal logging
             llm = Llama(
 
