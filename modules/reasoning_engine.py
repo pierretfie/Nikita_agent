@@ -33,6 +33,11 @@ class ReasoningEngine:
         
         # Load emotional patterns
         self.emotional_patterns = self._load_emotional_patterns()
+
+        # Load intent patterns (New)
+        self.intent_patterns_data = self._load_intent_patterns()
+        self.response_templates = self.intent_patterns_data.get("response_templates", {})
+        self.follow_up_patterns = self.intent_patterns_data.get("follow_up_patterns", {})
         
         # Personality traits
         self.personality = {
@@ -128,6 +133,16 @@ Thought Process:
                 return json.load(f)
         except Exception as e:
             console.print(f"[yellow]Warning: Could not load emotional patterns: {e}[/yellow]")
+            return {}
+
+    def _load_intent_patterns(self):
+        """Load intent patterns from JSON file"""
+        try:
+            patterns_file = os.path.join(os.path.dirname(__file__), "intent_patterns.json")
+            with open(patterns_file, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not load intent patterns from {patterns_file}: {e}[/yellow]")
             return {}
 
     def _get_pattern(self, category, subcategory=None, context=None):
@@ -253,13 +268,12 @@ Thought Process:
             reasoning["task_analysis"]["technical_context"] = {"domain": "information", "topic": informational_topic}
             reasoning["execution_plan"]["steps"] = ["understand query", "provide information", "offer related details"]
             reasoning["execution_plan"]["command"] = None # Ensure no command
-            # Generate informational follow-up
+            # Generate informational follow-up using patterns
             if informational_topic:
                  related_topic = self._find_related_topic(informational_topic.split()[0] if informational_topic else "concept")
-                 reasoning["response_strategy"]["follow_up_questions"] = [
-                     f"Would you like to know more about related concepts like {related_topic}?",
-                     f"Can I clarify any part of the explanation about {informational_topic}?"
-                 ]
+                 follow_ups = self._get_formatted_follow_ups("general_info", {"topic": related_topic}) + \
+                              self._get_formatted_follow_ups("general_info", {"topic": informational_topic})
+                 reasoning["response_strategy"]["follow_up_questions"] = random.sample(follow_ups, k=min(len(follow_ups), 2)) # Get up to 2 unique follow-ups
 
         elif primary_intent in ["command_execution", "command_request", "help_request", "security", "security_scan"]:
             reasoning["response_strategy"]["approach"] = "technical"
@@ -280,21 +294,19 @@ Thought Process:
 
             # Generate context-aware follow-up questions, avoiding repetition
             follow_ups = []
-            # Example: Check if target/scope is needed AND wasn't just answered
-            needs_target_scope = intent_analysis.get("command") and not intent_analysis.get("targets") if intent_analysis else False # Basic check
             question_already_answered = is_answer # If current input is answer, previous Q is resolved
 
             if primary_intent in ["command_request", "command_execution"] and not question_already_answered:
-                # Check if the command needs a target that isn't specified
-                # More sophisticated check needed based on command requirements
+                # Specific command needs checks
                 if command_from_intent and "nmap" in command_from_intent and len(command_from_intent.split()) == 1:
                     follow_ups.append("What is the target or scope for this nmap scan?")
-                elif "get my ip" in task.lower(): # If original query was this and wasn't resolved by an answer
+                elif "get my ip" in task.lower():
                      follow_ups.append("Which IP address are you interested in: public or private?")
                 else:
-                    # Generic fallback if specific needs aren't clear
-                    # follow_ups.append("Are there any specific parameters you want to use?")
-                    pass # Avoid overly generic questions if possible
+                    # Use follow-up patterns for the intent if available
+                     pattern_followups = self._get_formatted_follow_ups(primary_intent)
+                     if pattern_followups:
+                         follow_ups.extend(random.sample(pattern_followups, k=min(len(pattern_followups), 1))) # Add one random pattern
 
             elif primary_intent == "help_request":
                  tool_name = command_from_intent.split()[-1] if command_from_intent else "this command"
@@ -302,25 +314,41 @@ Thought Process:
                      f"What specifically about '{tool_name}' would you like help with?",
                      "Are you looking for usage examples or explanations of options?"
                  ])
-            # Keep original security follow-ups if relevant and not answered
             elif primary_intent == "security" and not question_already_answered:
-                 follow_ups.extend([
-                     "What specific security task are you trying to achieve?",
-                     "Do you need a tool recommendation or help with a specific technique?"
-                 ])
+                 # Use patterns for security intent
+                 pattern_followups = self._get_formatted_follow_ups(primary_intent)
+                 if pattern_followups:
+                      follow_ups.extend(random.sample(pattern_followups, k=min(len(pattern_followups), 2))) # Add up to 2 random patterns
+                 else: # Fallback if no patterns found
+                    follow_ups.extend([
+                        "What specific security task are you trying to achieve?",
+                        "Do you need a tool recommendation or help with a specific technique?"
+                    ])
+            elif primary_intent == "security_scan" and not question_already_answered:
+                # Use patterns for security_scan intent
+                target_context = {"target": intent_analysis.get("targets", ["the target"])[0] if intent_analysis.get("targets") else "the target"}
+                pattern_followups = self._get_formatted_follow_ups(primary_intent, target_context)
+                if pattern_followups:
+                     follow_ups.extend(random.sample(pattern_followups, k=min(len(pattern_followups), 2))) # Add up to 2 random patterns
 
-            reasoning["response_strategy"]["follow_up_questions"] = follow_ups
+
+            reasoning["response_strategy"]["follow_up_questions"] = list(set(follow_ups)) # Ensure unique follow-ups
 
         elif primary_intent in ["network_contact_query", "urgent_network_contact", "network_contact_concern"]:
              # Handle personal reference specific reasoning
              reasoning["task_analysis"]["technical_context"] = {"domain": "communication"}
              reasoning["response_strategy"]["approach"] = "personal_reference"
              reasoning["response_strategy"]["tone"] = "professional_empathy"
-             reasoning["response_strategy"]["follow_up_questions"] = [
-                 f"What specific information do you need about {personal_context['name'] if personal_context else 'them'}?",
-                 "Is this regarding a specific network issue or task?",
-                 "Would you like me to help you contact them or find information about their work?"
-             ]
+             # Use patterns if available, otherwise fallback
+             name = personal_context['name'] if personal_context else 'them'
+             pattern_followups = self._get_formatted_follow_ups(primary_intent, {"name": name})
+             if pattern_followups:
+                 reasoning["response_strategy"]["follow_up_questions"] = random.sample(pattern_followups, k=min(len(pattern_followups), 2))
+             else:
+                 reasoning["response_strategy"]["follow_up_questions"] = [
+                     f"What specific information do you need about {name}?",
+                     "Is this regarding a specific network issue or task?"
+                 ]
              reasoning["execution_plan"]["steps"] = ["clarify request", "gather contact info (if requested)", "provide assistance"]
 
         # Handle answer intent explicitly - confirm action based on answer
@@ -330,9 +358,12 @@ Thought Process:
              reasoning["response_strategy"]["technical_level"] = "moderate"
              reasoning["task_analysis"]["technical_context"] = {"domain": "clarification_resolved"}
              # Steps depend on whether the answer led to a command
-             if reasoning["execution_plan"]["command"]:
+             if reasoning["execution_plan"]["command"] and "Cannot get public IP" not in reasoning["execution_plan"]["command"]:
                 reasoning["execution_plan"]["steps"] = ["confirm understanding of answer", "prepare command execution", "confirm command (if needed)"]
-                reasoning["response_strategy"]["follow_up_questions"] = [f"Okay, based on your answer ('{extracted_answer}'), I will proceed with: {reasoning['execution_plan']['command']}. Is that correct?"]
+                reasoning["response_strategy"]["follow_up_questions"] = [f"Okay, based on your answer ('{extracted_answer}'), I suggest running: `{reasoning['execution_plan']['command']}`. Shall I proceed?"]
+             elif reasoning["execution_plan"]["command"]:
+                reasoning["execution_plan"]["steps"] = ["acknowledge answer", "explain limitation"]
+                reasoning["response_strategy"]["follow_up_questions"] = [f"Got it ('{extracted_answer}'). {reasoning['execution_plan']['command']}"]
              else:
                  reasoning["execution_plan"]["steps"] = ["acknowledge answer", "determine next logical step"]
                  reasoning["response_strategy"]["follow_up_questions"] = [f"Got it ('{extracted_answer}'). What would you like to do next?"]
@@ -343,7 +374,12 @@ Thought Process:
             reasoning["response_strategy"]["technical_level"] = "moderate"
             reasoning["task_analysis"]["technical_context"] = {"domain": technical_context or "general"}
             reasoning["execution_plan"]["steps"] = ["understand query", "provide information", "ask clarifying questions"]
-            reasoning["response_strategy"]["follow_up_questions"] = ["How else can I help you with this topic?", "Is there anything specific you'd like to explore further?"]
+            # Use patterns for general query follow-up
+            pattern_followups = self._get_formatted_follow_ups("general_query")
+            if pattern_followups:
+                reasoning["response_strategy"]["follow_up_questions"] = random.sample(pattern_followups, k=min(len(pattern_followups), 2))
+            else:
+                reasoning["response_strategy"]["follow_up_questions"] = ["How else can I help you with this topic?", "Is there anything specific you'd like to explore further?"]
 
         # Combine reasoning components into a single dictionary for the final prompt
         final_reasoning_context = {
@@ -352,6 +388,27 @@ Thought Process:
         }
 
         return final_reasoning_context
+
+    # --- Helper methods for reasoning ---
+
+    # New helper to get and format follow-up patterns
+    def _get_formatted_follow_ups(self, intent_key, context_vars=None):
+        """Retrieves and formats follow-up patterns for a given intent."""
+        formatted_questions = []
+        if context_vars is None:
+            context_vars = {}
+
+        patterns = self.follow_up_patterns.get(intent_key, [])
+        for pattern in patterns:
+            try:
+                # Attempt to format the string, skipping if keys are missing
+                formatted_questions.append(pattern.format(**context_vars))
+            except KeyError:
+                # If a placeholder key is missing in context_vars, just skip this pattern
+                # Or potentially add the raw pattern if desired?
+                # formatted_questions.append(pattern) # Optionally add raw pattern
+                pass
+        return formatted_questions
 
     def _determine_goal(self, task):
         """Determine the goal based on task description"""
