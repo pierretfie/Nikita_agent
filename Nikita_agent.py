@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 import time
-import random
+import ctypes
 import socket
 import getpass
 import sys
@@ -65,6 +65,12 @@ TEMPERATURE = 0.3  # Reduced from 0.7 for more focused responses
 MEMORY_LIMIT = 20  # Set a reasonable limit for memory usage
 os.environ['LLAMA_CPP_LOG_LEVEL'] = '0'
 
+# Redirect stdout and stderr to /dev/null (Linux/macOS) or NUL (Windows)
+sys.stdout = open(os.devnull, 'w')
+sys.stderr = open(os.devnull, 'w')
+
+# Optional: Redirect C-level stderr (useful for deep C++ logging)
+ctypes.cdll.LoadLibrary(None).stderr = open(os.devnull, 'w')
 # Get system parameters for model initialization
 system_params = get_dynamic_params()
 
