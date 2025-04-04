@@ -20,7 +20,11 @@ import readline  # Add readline for command history and editing
 import warnings
 import contextlib
 import torch
-
+console = Console()
+console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
+console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
+user = input().strip()
+print(user)
 # Determine the directory of the main script (Nikita_agent.py)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -322,11 +326,7 @@ except FileNotFoundError:
 except Exception as e:
     console.print(f"[yellow]Could not load prompt template: {e}[/yellow]")
     PROMPT_TEMPLATE = "You are a helpful AI assistant."  # Default prompt
-console = Console()
-console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
-console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()
-print(user)
+
 # Create a context manager to redirect stderr
 @contextlib.contextmanager
 def suppress_stderr():
