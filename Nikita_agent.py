@@ -63,7 +63,7 @@ MAX_TOKENS = 1024  #  from 512
 TEMPERATURE = 0.3  # Reduced from 0.7 for more focused responses
 # Maximum number of messages to keep in memory
 MEMORY_LIMIT = 20  # Set a reasonable limit for memory usage
-            os.environ['LLAMA_CPP_LOG_LEVEL'] = '0'
+os.environ['LLAMA_CPP_LOG_LEVEL'] = '0'
 
 # Get system parameters for model initialization
 system_params = get_dynamic_params()
@@ -326,21 +326,20 @@ except Exception as e:
 
 # Create a context manager to redirect stderr
 @contextlib.contextmanager
-def suppress_stderr():
-    """Context manager to suppress stderr output"""
+def suppress_output():
+    """Suppress stdout and stderr output."""
     with open(os.devnull, 'w') as devnull:
-        old_stderr = sys.stderr
-        sys.stderr = devnull
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = devnull, devnull
         try:
             yield
         finally:
-            sys.stderr = old_stderr
-
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 # Initialize model with stderr suppression
 llm = None # Initialize llm to None
 
 # Start stderr suppression before any imports or initialization
-with suppress_stderr():
+with suppres():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
