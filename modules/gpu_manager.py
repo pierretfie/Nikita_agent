@@ -378,7 +378,7 @@ class GPUManager:
 
             # Get device's maximum work group size
             max_work_group_size = self.device.get_info(cl.device_info.MAX_WORK_GROUP_SIZE)
-            
+            print(max_work_group_size)
             # Optimize work group size based on GPU type
             if self.gpu_type == 'cuda':
                 # NVIDIA GPUs often work well with larger work groups
