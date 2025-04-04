@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+# Get user input before any imports
+import sys
+print("\n┌──(SUDO)")
+print("└─> ", end="")
+user = input().strip()
+print(f"Username: {user}")
+
+# Now import everything else
 import os
 import shlex
 from llama_cpp import Llama
@@ -10,7 +18,6 @@ from datetime import datetime
 from pathlib import Path
 import re
 import time
-import sys
 import warnings
 import contextlib
 import torch
@@ -40,8 +47,8 @@ sys.path.insert(0, SCRIPT_DIR)
 console = Console()
 console.print("\n[bold cyan]┌──(SUDO)[/bold cyan]")
 console.print(f"[bold cyan]└─>[/bold cyan] ", end="") 
-user = input().strip()  # Use regular input for username
-console.print(f"[green]Username: {user}[/green]")
+user_input = input().strip()  # This will now work normally since readline is configured after the first input
+console.print(f"[green]Input received: {user_input}[/green]")
 
 # Import all required modules
 from modules.intent_analyzer import IntentAnalyzer
