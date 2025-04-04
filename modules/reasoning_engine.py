@@ -170,6 +170,7 @@ Thought Process:
         emotional_context = intent_analysis.get("emotional_context") if intent_analysis else self._analyze_emotional_context(task)
         technical_context = intent_analysis.get("technical_context") if intent_analysis else None
         personal_context = intent_analysis.get("personal_reference") if intent_analysis else None
+        answered_context = intent_analysis.get("answered_context") if intent_analysis else None
 
         # Initialize reasoning template
         reasoning = {
@@ -178,7 +179,8 @@ Thought Process:
                 "secondary_intents": [],
                 "personal_context": personal_context, # Use personal context from analysis
                 "technical_context": None, # Will be populated based on intent/keywords
-                "emotional_context": emotional_context # Use emotional context from analysis
+                "emotional_context": emotional_context, # Use emotional context from analysis
+                "answered_context": answered_context # Track if this is an answer to a previous question
             },
             "response_strategy": {
                 "approach": None,
@@ -221,23 +223,63 @@ Thought Process:
                 focus = "tool_recommendation" if "best" in task.lower() else "tool_usage"
                 reasoning["task_analysis"]["technical_context"]["focus"] = focus
 
-                # Add follow-up based on whether it's help or execution
-                if primary_intent == "help_request":
-                     reasoning["response_strategy"]["follow_up_questions"] = [
-                         f"What specifically about '{command.split()[-1] if command else 'this command'}' would you like help with?",
-                         "Are you looking for usage examples or explanations of options?"
-                     ]
-                elif primary_intent in ["command_request", "command_execution"]:
-                     reasoning["response_strategy"]["follow_up_questions"] = [
-                         "What is the target or scope for this command?",
-                         "Are there any specific parameters you want to use?"
-                     ]
-                else: # General tool query
-                     reasoning["response_strategy"]["follow_up_questions"] = [
-                         "What specific security requirements do you have?",
-                         "Are you looking for a specific type of security tool?",
-                         "Do you need a tool for a particular security task?"
-                     ]
+                # Add follow-up based on whether it's help or execution and if there's an answered context
+                if answered_context:
+                    # If this is an answer to a previous question, generate appropriate follow-up
+                    if answered_context.get("answered_question", "").lower().startswith(("what", "how", "which", "when", "where", "why")):
+                        # For "what" questions about tools/commands
+                        if "what" in answered_context["answered_question"].lower():
+                            reasoning["response_strategy"]["follow_up_questions"] = [
+                                "Would you like to see an example of how to use this?",
+                                "Would you like me to explain more about its features?",
+                                "Would you like to know about alternative tools?"
+                            ]
+                        # For "how" questions about tools/commands
+                        elif "how" in answered_context["answered_question"].lower():
+                            reasoning["response_strategy"]["follow_up_questions"] = [
+                                "Would you like me to show you the command syntax?",
+                                "Would you like to see some common use cases?",
+                                "Would you like to know about best practices?"
+                            ]
+                        # For "which" questions about tools/commands
+                        elif "which" in answered_context["answered_question"].lower():
+                            reasoning["response_strategy"]["follow_up_questions"] = [
+                                "Would you like to know more about why this is the best choice?",
+                                "Would you like to see a comparison with other options?",
+                                "Would you like to know about its specific advantages?"
+                            ]
+                        else:
+                            # Default follow-up questions for other types of questions
+                            reasoning["response_strategy"]["follow_up_questions"] = [
+                                "Would you like me to explain more about this?",
+                                "Would you like to see some practical examples?",
+                                "Would you like to know about related concepts?"
+                            ]
+                    else:
+                        # For non-question answers, generate context-appropriate follow-up
+                        reasoning["response_strategy"]["follow_up_questions"] = [
+                            "Would you like to proceed with this option?",
+                            "Would you like to know more about what this means?",
+                            "Would you like to explore other options?"
+                        ]
+                else:
+                    # Original follow-up questions for new queries
+                    if primary_intent == "help_request":
+                        reasoning["response_strategy"]["follow_up_questions"] = [
+                            f"What specifically about '{command.split()[-1] if command else 'this command'}' would you like help with?",
+                            "Are you looking for usage examples or explanations of options?"
+                        ]
+                    elif primary_intent in ["command_request", "command_execution"]:
+                        reasoning["response_strategy"]["follow_up_questions"] = [
+                            "What is the target or scope for this command?",
+                            "Are there any specific parameters you want to use?"
+                        ]
+                    else: # General tool query
+                        reasoning["response_strategy"]["follow_up_questions"] = [
+                            "What specific security requirements do you have?",
+                            "Are you looking for a specific type of security tool?",
+                            "Do you need a tool for a particular security task?"
+                        ]
 
                 # Add tool recommendations if appropriate (example)
                 if "scan" in task.lower() and "detect" in task.lower():
