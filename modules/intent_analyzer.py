@@ -130,7 +130,7 @@ class IntentAnalyzer:
                      entry = chat_memory[i]
                      if entry.get("role") == "user":
                          original_query = entry.get("content", "")
-                         analysis["targets"] = extract_targets(original_query, use_cache=False) # Re-extract from original
+                         analysis["targets"] = extract_targets(original_query) # Re-extract from original
                          break
              return analysis # Return early, reasoning engine will handle combining answer with original task
 
@@ -154,7 +154,7 @@ class IntentAnalyzer:
 
         # 3. If not an answer or informational query, proceed with command/general intent analysis
         # Extract potential targets first
-        analysis["targets"] = extract_targets(user_input, use_cache=False) # Extract targets
+        analysis["targets"] = extract_targets(user_input) # Extract targets
 
         # Intent matching based on patterns
         best_match_score = 0
