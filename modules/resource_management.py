@@ -26,11 +26,11 @@ def get_dynamic_params():
         n_batch = 512  # Restored original value
     elif ram_gb >= 16:  # Mid-range systems
         ram_target_utilization = 0.7  # Reduced from 0.65
-        context_limit = 1024  # Reduced from 2048
+        context_limit = 2048  # Reduced from 2048
         n_batch = 512  # Restored original value
     elif ram_gb >= 8:  # Common systems
         ram_target_utilization = 0.7  # Reduced from 0.65
-        context_limit = 1024
+        context_limit = 2048
         n_batch = 384  # Restored original value
     else:  # Low-memory systems
         ram_target_utilization = 0.6  # Reduced from 0.55
