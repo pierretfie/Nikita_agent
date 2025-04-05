@@ -868,8 +868,18 @@ def main():
                 executor.submit(save_response_to_memory)
                 
                 # Display the response with clear formatting
-                console.print(f"[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
-                console.print(f"[bold magenta]└─>[/bold magenta] {response}")
+                console.print(f"[bold magenta]┌──(NIKITA ��)[/bold magenta]")
+                
+                # Filter out reasoning section if present
+                response_lines = response.split('\n')
+                filtered_response = []
+                for line in response_lines:
+                    if not line.startswith('Reasoning:'):
+                        filtered_response.append(line)
+                
+                # Join the filtered response and display
+                clean_response = '\n'.join(filtered_response).strip()
+                console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}")
                 console.print() # Add an empty line after output for better readability
         except KeyboardInterrupt:
             # Make sure to stop the timer if it exists in this scope
