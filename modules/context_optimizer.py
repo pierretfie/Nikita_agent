@@ -230,9 +230,12 @@ class ContextOptimizer:
         # Create enhanced prompt with all context
         prompt = f"{base_prompt}\n\n"
         
-        # Add specific instructions for tool comparisons
-        if "between" in current_task.lower() and "tool" in current_task.lower():
-            comparison_instructions = """You are a security tool expert. When comparing tools, provide a detailed, structured comparison that includes:
+        # Add specific instructions for tool comparisons only when explicitly comparing tools
+        if ("compare" in current_task.lower() or "between" in current_task.lower()) and "tool" in current_task.lower():
+            # Check if we're actually comparing specific tools
+            tool_names = re.findall(r'\b(nmap|metasploit|hydra|hashcat|gobuster|wireshark|aircrack-ng|burpsuite|sqlmap)\b', current_task.lower())
+            if len(tool_names) >= 2:  # Only add comparison instructions if we're comparing at least 2 specific tools
+                comparison_instructions = """You are a security tool expert. When comparing tools, provide a detailed, structured comparison that includes:
 
 1. Overview of each tool's primary purpose and capabilities
 2. Specific advantages and disadvantages of each tool
@@ -247,13 +250,15 @@ class ContextOptimizer:
 
 Format your response in clear sections with bullet points. Be specific and technical in your analysis.
 Do not apologize or give generic responses. Focus on providing actionable information.\n\n"""
-            
-            comparison_tokens = self.estimate_tokens(comparison_instructions)
-            print(f"Comparison instructions tokens: {comparison_tokens}")
-            if total_tokens + comparison_tokens <= self.max_tokens - self.reserve_tokens:
-                prompt += comparison_instructions
+                
+                comparison_tokens = self.estimate_tokens(comparison_instructions)
+                print(f"Comparison instructions tokens: {comparison_tokens}")
+                if total_tokens + comparison_tokens <= self.max_tokens - self.reserve_tokens:
+                    prompt += comparison_instructions
+                else:
+                    print("Skipping comparison instructions due to token limit")
             else:
-                print("Skipping comparison instructions due to token limit")
+                print("Not adding comparison instructions - no specific tools to compare")
         
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"
