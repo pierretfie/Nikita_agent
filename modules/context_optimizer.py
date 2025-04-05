@@ -12,7 +12,7 @@ from datetime import datetime
 import json
 
 # Default token limits
-DEFAULT_MAX_TOKENS = 2048
+DEFAULT_MAX_TOKENS = 5000
 DEFAULT_RESERVE_TOKENS = 512
 
 class ContextOptimizer:
