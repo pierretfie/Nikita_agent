@@ -147,9 +147,9 @@ class ContextOptimizer:
         # Extract targets from memory if available
         targets = self.engagement_memory.get("targets", []) if self.engagement_memory else []
             
-        # Get optimized context - keep last 5 messages for better continuity
+        # Get optimized context - keep last 15 messages for better continuity
         context_messages = []
-        for msg in chat_memory[-5:]:
+        for msg in chat_memory[-15:]:  # Changed from -5 to -15
             if isinstance(msg, dict) and msg.get('content'):
                 # Add role prefix for clarity
                 role = msg.get('role', 'user')
@@ -175,57 +175,6 @@ class ContextOptimizer:
         follow_up_str = ""
         if follow_up_questions:
             follow_up_str = f"\nFollow-up Questions:\n" + "\n".join(f"- {q}" for q in follow_up_questions)
-        elif targets:  # Generate comprehensive follow-up questions for targets
-            follow_up_str = "\nFollow-up Questions:\n"
-            for target in targets:
-                if re.match(r'(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?', target):  # IP or CIDR
-                    # Network scanning options
-                    follow_up_str += f"- Would you like me to scan {target} for open ports?\n"
-                    follow_up_str += f"- Should I check if {target} is responding to ping?\n"
-                    follow_up_str += f"- Would you like to see what services are running on {target}?\n"
-                    follow_up_str += f"- Should I perform a vulnerability scan on {target}?\n"
-                    follow_up_str += f"- Would you like me to check for common web vulnerabilities on {target}?\n"
-                    follow_up_str += f"- I can scan {target} for specific ports or services you're interested in.\n"
-                    follow_up_str += f"- Would you like to see what operating system {target} is running?\n"
-                    follow_up_str += f"- Should I check if {target} has any exposed databases?\n"
-                    follow_up_str += f"- Would you like me to scan {target} for common misconfigurations?\n"
-                    follow_up_str += f"- I can check if {target} has any exposed admin interfaces.\n"
-                    
-                    # Network mapping options
-                    follow_up_str += f"- Would you like me to map the network topology around {target}?\n"
-                    follow_up_str += f"- I can check what other hosts are in the same network as {target}.\n"
-                    follow_up_str += f"- Should I identify the network services and their versions on {target}?\n"
-                    follow_up_str += f"- Would you like to see the network path to {target}?\n"
-                    follow_up_str += f"- I can check for any network security devices protecting {target}.\n"
-                    
-                    # Security assessment options
-                    follow_up_str += f"- Would you like me to check {target} for common security misconfigurations?\n"
-                    follow_up_str += f"- I can scan {target} for known vulnerabilities in running services.\n"
-                    follow_up_str += f"- Should I check if {target} is running any outdated or vulnerable software?\n"
-                    follow_up_str += f"- Would you like me to analyze {target}'s security posture?\n"
-                    follow_up_str += f"- I can check if {target} has any exposed sensitive information.\n"
-                    
-                elif re.match(r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}', target):  # Hostname
-                    # DNS and resolution options
-                    follow_up_str += f"- Would you like me to resolve the DNS for {target}?\n"
-                    follow_up_str += f"- I can check all DNS records associated with {target}.\n"
-                    follow_up_str += f"- Should I verify the SSL/TLS configuration of {target}?\n"
-                    follow_up_str += f"- Would you like to see the IP addresses associated with {target}?\n"
-                    follow_up_str += f"- I can check if {target} has any subdomains.\n"
-                    
-                    # Web-specific options
-                    follow_up_str += f"- Would you like me to scan {target} for web vulnerabilities?\n"
-                    follow_up_str += f"- I can check if {target} has any exposed admin panels.\n"
-                    follow_up_str += f"- Should I analyze the security headers of {target}?\n"
-                    follow_up_str += f"- Would you like me to check for common web misconfigurations on {target}?\n"
-                    follow_up_str += f"- I can scan {target} for exposed sensitive files.\n"
-                    
-                    # General security options
-                    follow_up_str += f"- Would you like me to check if {target} is responding to ping?\n"
-                    follow_up_str += f"- I can scan {target} for open ports and services.\n"
-                    follow_up_str += f"- Should I check if {target} has any known vulnerabilities?\n"
-                    follow_up_str += f"- Would you like to see what services are running on {target}?\n"
-                    follow_up_str += f"- I can analyze the security posture of {target}.\n"
         
         # Add active targets if any
         targets_str = ""
@@ -234,6 +183,20 @@ class ContextOptimizer:
         
         # Create enhanced prompt with all context
         prompt = f"{base_prompt}\n\n"
+        
+        # Add specific instructions for tool comparisons
+        if "between" in current_task.lower() and "tool" in current_task.lower():
+            prompt += """When comparing tools, provide a detailed comparison including:
+1. Specific advantages and disadvantages of each tool
+2. Use cases where each tool excels
+3. Performance and resource requirements
+4. Ease of use and learning curve
+5. Security considerations
+6. Integration capabilities
+7. Community support and documentation
+
+Format your response in a clear, structured way with bullet points or sections.\n\n"""
+        
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"
         if targets_str:
