@@ -748,14 +748,14 @@ def main():
                 transient=True,
             ) as progress:
                 start_time = time.time()
-                task_id = progress.add_task("🐺 Reasoning...", total=None)
+                task_id = progress.add_task("Reasoning...", total=None)
                 
                 # Update the timer every 0.1 seconds
                 timer_running = True
                 def update_timer():
                     while timer_running:
                         elapsed = time.time() - start_time
-                        progress.update(task_id, description=f"🐺 Reasoning... [{elapsed:.1f}s]")
+                        progress.update(task_id, description=f"Reasoning... [{elapsed:.1f}s]")
                         time.sleep(0.1)
                 
                 # Start the timer update thread
