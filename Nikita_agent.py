@@ -748,14 +748,14 @@ def main():
                 transient=True,
             ) as progress:
                 start_time = time.time()
-                task_id = progress.add_task("🐺 Processing...", total=None)
+                task_id = progress.add_task("🐺 Reasoning...", total=None)
                 
                 # Update the timer every 0.1 seconds
                 timer_running = True
                 def update_timer():
                     while timer_running:
                         elapsed = time.time() - start_time
-                        progress.update(task_id, description=f"🐺 Processing... [{elapsed:.1f}s]")
+                        progress.update(task_id, description=f"🐺 Reasoning... [{elapsed:.1f}s]")
                         time.sleep(0.1)
                 
                 # Start the timer update thread
@@ -788,6 +788,15 @@ def main():
                     if not clean_response:
                         clean_response = "I apologize, but I encountered an issue generating a response. Please try rephrasing your question."
                     
+                    # Stop the timer thread and progress spinner before displaying response
+                    timer_running = False
+                    timer_thread.join(timeout=0.2)  # Wait for thread to finish
+                    progress.stop()
+                    
+                    # Display total elapsed time
+                    total_time = time.time() - start_time
+                    console.print(f"⏱️ {total_time:.1f}s")
+                    
                     # Display the response with clear formatting
                     console.print(f"\n[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
                     console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}")
@@ -797,16 +806,6 @@ def main():
                     console.print(f"[red]Error generating response: {str(e)}[/red]")
                     console.print("[yellow]Please try rephrasing your question.[/yellow]")
 
-                # Stop the timer thread and progress spinner
-                timer_running = False
-                timer_thread.join(timeout=0.2)  # Wait for thread to finish
-                progress.stop()
-                
-                # Display total elapsed time
-                total_time = time.time() - start_time
-                console.print(f"⏱️ {total_time:.1f}s")
-                console.print() # Add an empty line for better separation
-                
                 # Process any commands in the response
                 command_match = re.search(r'```(.*?)```', response, re.DOTALL) or re.search(r'`(.*?)`', response, re.DOTALL)
                 
