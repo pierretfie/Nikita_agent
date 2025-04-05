@@ -764,12 +764,39 @@ def main():
                 timer_thread.start()
 
                 # Generate response using cached response function for better performance
-                output = get_cached_response(full_prompt)
-
-                # --- DEBUG START ---
-                # print(f"--- Raw Output Received from LLM: ---\n{output}")
-                # print("---------------------------------")
-                # --- DEBUG END ---
+                try:
+                    output = get_cached_response(full_prompt)
+                    response = output['choices'][0]['text'].strip()
+                    
+                    # Ensure we have a valid response
+                    if not response or response.lower().startswith(('i apologize', 'sorry', 'error')):
+                        # Generate a fallback response
+                        fallback_prompt = f"{base_prompt}\n\nTask: {current_task}\nProvide a detailed, helpful response.\nResponse:"
+                        output = get_cached_response(fallback_prompt)
+                        response = output['choices'][0]['text'].strip()
+                    
+                    # Filter out reasoning section if present
+                    response_lines = response.split('\n')
+                    filtered_response = []
+                    for line in response_lines:
+                        if not line.startswith(('Reasoning:', 'Follow-up Questions:', 'Task:')):
+                            filtered_response.append(line)
+                    
+                    # Join the filtered response and display
+                    clean_response = '\n'.join(filtered_response).strip()
+                    
+                    # Ensure we have content to display
+                    if not clean_response:
+                        clean_response = "I apologize, but I encountered an issue generating a response. Please try rephrasing your question."
+                    
+                    # Display the response with clear formatting
+                    console.print(f"[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
+                    console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}")
+                    console.print() # Add an empty line after output for better readability
+                    
+                except Exception as e:
+                    console.print(f"[red]Error generating response: {str(e)}[/red]")
+                    console.print("[yellow]Please try rephrasing your question.[/yellow]")
 
                 # Stop the timer thread and progress spinner
                 timer_running = False
@@ -780,8 +807,6 @@ def main():
                 total_time = time.time() - start_time
                 console.print(f"⏱️ {total_time:.1f}s")
                 console.print() # Add an empty line for better separation
-                
-                response = output['choices'][0]['text'].strip()
                 
                 # Process any commands in the response
                 command_match = re.search(r'```(.*?)```', response, re.DOTALL) or re.search(r'`(.*?)`', response, re.DOTALL)
@@ -866,32 +891,6 @@ def main():
                 
                 # Execute save in background to avoid blocking
                 executor.submit(save_response_to_memory)
-                
-                # Display the response with clear formatting
-                console.print(f"[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
-                
-                # Filter out reasoning section and other internal sections
-                response_lines = response.split('\n')
-                filtered_response = []
-                skip_next = False
-                
-                for line in response_lines:
-                    # Skip lines that indicate internal sections
-                    if any(line.lower().startswith(x) for x in ['reasoning:', 'analysis:', 'internal:', 'debug:', 'task:', 'response:']):
-                        skip_next = True
-                        continue
-                    if skip_next:
-                        skip_next = False
-                        continue
-                        
-                    # Skip empty lines after filtering
-                    if line.strip():
-                        filtered_response.append(line)
-                
-                # Join the filtered response and display
-                clean_response = '\n'.join(filtered_response).strip()
-                console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}")
-                console.print() # Add an empty line after output for better readability
         except KeyboardInterrupt:
             # Make sure to stop the timer if it exists in this scope
             if 'timer_running' in locals():

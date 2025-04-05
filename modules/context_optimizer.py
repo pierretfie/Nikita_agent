@@ -149,7 +149,7 @@ class ContextOptimizer:
             
         # Get optimized context - keep last 15 messages for better continuity
         context_messages = []
-        for msg in chat_memory[-15:]:
+        for msg in chat_memory[-15:]:  # Changed from -5 to -15
             if isinstance(msg, dict) and msg.get('content'):
                 # Add role prefix for clarity
                 role = msg.get('role', 'user')
@@ -186,44 +186,21 @@ class ContextOptimizer:
         
         # Add specific instructions for tool comparisons
         if "between" in current_task.lower() and "tool" in current_task.lower():
-            # Extract tools mentioned in the conversation
-            tools_mentioned = set()
-            for msg in chat_memory[-5:]:  # Look at last 5 messages for tool mentions
-                if isinstance(msg, dict) and msg.get('content'):
-                    content = msg['content'].lower()
-                    for tool in ["nmap", "wireshark", "zmap", "metasploit", "hydra", "hashcat", "gobuster", "aircrack-ng", "burpsuite", "sqlmap"]:
-                        if tool in content:
-                            tools_mentioned.add(tool)
-            
-            if tools_mentioned:
-                tools_list = ", ".join(tools_mentioned)
-                prompt += f"""You are comparing the following tools: {tools_list}
+            prompt += """You are a security tool expert. When comparing tools, provide a detailed, structured comparison that includes:
 
-Provide a detailed comparison including:
-1. Specific advantages and disadvantages of each tool
-2. Use cases where each tool excels
-3. Performance and resource requirements
-4. Ease of use and learning curve
-5. Security considerations
-6. Integration capabilities
-7. Community support and documentation
+1. Overview of each tool's primary purpose and capabilities
+2. Specific advantages and disadvantages of each tool
+3. Use cases where each tool excels
+4. Performance and resource requirements
+5. Ease of use and learning curve
+6. Security considerations and best practices
+7. Integration capabilities with other tools
+8. Community support and documentation quality
+9. Cost and licensing considerations
+10. Specific examples of when to use each tool
 
-Format your response in a clear, structured way with bullet points or sections.
-Focus on comparing these specific tools rather than providing general information.
-Do not include reasoning or analysis in your response, only the comparison.\n\n"""
-            else:
-                prompt += """Please identify which tools you are comparing from the conversation.
-Then provide a detailed comparison including:
-1. Specific advantages and disadvantages of each tool
-2. Use cases where each tool excels
-3. Performance and resource requirements
-4. Ease of use and learning curve
-5. Security considerations
-6. Integration capabilities
-7. Community support and documentation
-
-Format your response in a clear, structured way with bullet points or sections.
-Do not include reasoning or analysis in your response, only the comparison.\n\n"""
+Format your response in clear sections with bullet points. Be specific and technical in your analysis.
+Do not apologize or give generic responses. Focus on providing actionable information.\n\n"""
         
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"
@@ -236,7 +213,7 @@ Do not include reasoning or analysis in your response, only the comparison.\n\n"
         if follow_up_str:
             prompt += f"{follow_up_str}\n"
         
-        prompt += f"\nTask: {current_task}\nResponse:"
+        prompt += f"\nTask: {current_task}\nProvide a complete, detailed response:\n"
         
         # Cache the result
         self.prompt_cache[cache_key] = prompt
