@@ -57,7 +57,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Model parameters
 #max tokens refer to the maximum number of tokens that the model can generate in a single response.
-MAX_TOKENS = 1024  #  from 512
+MAX_TOKENS = 2048  #  from 512
 TEMPERATURE = 0.3  # Reduced from 0.7 for more focused responses
 # Maximum number of messages to keep in memory
 MEMORY_LIMIT = 20  # Set a reasonable limit for memory usage
