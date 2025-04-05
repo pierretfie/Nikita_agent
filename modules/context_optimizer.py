@@ -143,6 +143,10 @@ class ContextOptimizer:
         if not base_prompt:
             base_prompt = "You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task."
             
+        # Debug: Print initial token count
+        print(f"\n=== Token Usage Debug ===")
+        print(f"Base prompt tokens: {self.estimate_tokens(base_prompt)}")
+            
         # Check prompt cache first
         cache_key = f"{base_prompt}_{current_task}_{len(chat_memory)}"
         if cache_key in self.prompt_cache:
@@ -155,20 +159,29 @@ class ContextOptimizer:
         context_messages = []
         total_tokens = self.estimate_tokens(base_prompt)  # Start with base prompt tokens
         
+        # Debug: Print chat memory info
+        print(f"Chat memory length: {len(chat_memory)}")
+        print(f"Processing last {min(15, len(chat_memory))} messages")
+        
         # Add messages while staying within token limit
+        chat_tokens = 0
         for msg in reversed(chat_memory[-15:]):  # Process from newest to oldest
             if isinstance(msg, dict) and msg.get('content'):
                 role = msg.get('role', 'user')
                 content = msg['content']
                 message = f"{role.upper()}: {content}"
                 message_tokens = self.estimate_tokens(message)
+                chat_tokens += message_tokens
                 
                 # Check if adding this message would exceed token limit
                 if total_tokens + message_tokens > self.max_tokens - self.reserve_tokens:
+                    print(f"Stopping at message {len(context_messages)} due to token limit")
                     break
                     
                 context_messages.insert(0, message)  # Add to start since we're processing in reverse
                 total_tokens += message_tokens
+        
+        print(f"Chat memory tokens used: {chat_tokens}")
         
         context_str = "\n".join(context_messages)
         
@@ -177,7 +190,9 @@ class ContextOptimizer:
         if tool_context:
             tool_context_str = self.format_tool_context(tool_context)
             tool_tokens = self.estimate_tokens(tool_context_str)
+            print(f"Tool context tokens: {tool_tokens}")
             if total_tokens + tool_tokens > self.max_tokens - self.reserve_tokens:
+                print("Skipping tool context due to token limit")
                 tool_context_str = ""  # Skip if it would exceed token limit
         
         # Format reasoning context if available
@@ -187,7 +202,9 @@ class ContextOptimizer:
                 reasoning_context["active_targets"] = targets
             reasoning_str = f"\nReasoning Context:\n{json.dumps(reasoning_context, indent=2)}"
             reasoning_tokens = self.estimate_tokens(reasoning_str)
+            print(f"Reasoning context tokens: {reasoning_tokens}")
             if total_tokens + reasoning_tokens > self.max_tokens - self.reserve_tokens:
+                print("Skipping reasoning context due to token limit")
                 reasoning_str = ""  # Skip if it would exceed token limit
         
         # Format follow-up questions if available
@@ -195,7 +212,9 @@ class ContextOptimizer:
         if follow_up_questions:
             follow_up_str = f"\nFollow-up Questions:\n" + "\n".join(f"- {q}" for q in follow_up_questions)
             follow_up_tokens = self.estimate_tokens(follow_up_str)
+            print(f"Follow-up questions tokens: {follow_up_tokens}")
             if total_tokens + follow_up_tokens > self.max_tokens - self.reserve_tokens:
+                print("Skipping follow-up questions due to token limit")
                 follow_up_str = ""  # Skip if it would exceed token limit
         
         # Add active targets if any
@@ -203,7 +222,9 @@ class ContextOptimizer:
         if targets:
             targets_str = f"\nActive Targets:\n" + "\n".join(f"- {t}" for t in targets)
             target_tokens = self.estimate_tokens(targets_str)
+            print(f"Targets tokens: {target_tokens}")
             if total_tokens + target_tokens > self.max_tokens - self.reserve_tokens:
+                print("Skipping targets due to token limit")
                 targets_str = ""  # Skip if it would exceed token limit
         
         # Create enhanced prompt with all context
@@ -228,8 +249,11 @@ Format your response in clear sections with bullet points. Be specific and techn
 Do not apologize or give generic responses. Focus on providing actionable information.\n\n"""
             
             comparison_tokens = self.estimate_tokens(comparison_instructions)
+            print(f"Comparison instructions tokens: {comparison_tokens}")
             if total_tokens + comparison_tokens <= self.max_tokens - self.reserve_tokens:
                 prompt += comparison_instructions
+            else:
+                print("Skipping comparison instructions due to token limit")
         
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"
@@ -243,6 +267,13 @@ Do not apologize or give generic responses. Focus on providing actionable inform
             prompt += f"{follow_up_str}\n"
         
         prompt += f"\nTask: {current_task}\nProvide a complete, detailed response:\n"
+        
+        # Print final token count
+        final_tokens = self.estimate_tokens(prompt)
+        print(f"Final prompt tokens: {final_tokens}")
+        print(f"Token limit: {self.max_tokens}")
+        print(f"Reserved tokens: {self.reserve_tokens}")
+        print("===================\n")
         
         # Cache the result
         self.prompt_cache[cache_key] = prompt
@@ -267,7 +298,7 @@ Do not apologize or give generic responses. Focus on providing actionable inform
             
     def estimate_tokens(self, text):
         """
-        Roughly estimate the number of tokens in text - simplified for speed
+        Estimate the number of tokens in text using a more accurate method
         
         Args:
             text (str): Text to estimate tokens for
@@ -275,12 +306,40 @@ Do not apologize or give generic responses. Focus on providing actionable inform
         Returns:
             int: Estimated token count
         """
-        # Very rough approximation, about 4 chars per token on average
-        # Fast path for empty or small text
-        if not text or len(text) < 100:
-            return len(text) // 4 + 1
+        if not text:
+            return 0
             
-        return len(text) // 4
+        # More accurate token estimation
+        # Average of 4 characters per token for English text
+        # Add extra tokens for special characters and whitespace
+        base_tokens = len(text) // 4
+        
+        # Add tokens for special characters and whitespace
+        special_chars = sum(1 for c in text if c in '.,!?;:()[]{}<>"\'')
+        whitespace = sum(1 for c in text if c.isspace())
+        
+        # Add tokens for newlines
+        newlines = text.count('\n')
+        
+        # Add tokens for role prefixes (USER:, ASSISTANT:)
+        role_prefixes = text.count('USER:') + text.count('ASSISTANT:')
+        
+        # Add tokens for bullet points and numbered lists
+        bullet_points = text.count('-') + text.count('*')
+        numbered_points = len(re.findall(r'\d+\.', text))
+        
+        # Calculate total tokens
+        total_tokens = (
+            base_tokens +
+            special_chars // 2 +  # Special chars count as half tokens
+            whitespace // 4 +      # Whitespace counts as quarter tokens
+            newlines +            # Each newline counts as a token
+            role_prefixes * 2 +   # Role prefixes count as 2 tokens each
+            bullet_points +       # Each bullet point counts as a token
+            numbered_points * 2   # Numbered points count as 2 tokens each
+        )
+        
+        return max(1, total_tokens)  # Ensure at least 1 token
 
 if __name__ == "__main__":
     # Simple self-test
