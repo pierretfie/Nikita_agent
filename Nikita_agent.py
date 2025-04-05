@@ -789,7 +789,7 @@ def main():
                         clean_response = "I apologize, but I encountered an issue generating a response. Please try rephrasing your question."
                     
                     # Display the response with clear formatting
-                    console.print(f"[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
+                    console.print(f"\n[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
                     console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}")
                     console.print() # Add an empty line after output for better readability
                     
