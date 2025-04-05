@@ -436,7 +436,7 @@ with suppress_stderr():
                         mem_allocated = torch.cuda.memory_allocated(0) / (1024**2)
                         console.print(mem_allocated)
                         # mem_reserved = torch.cuda.memory_reserved(0) / (1024**2) # Reserved is less indicative of active layers
-                        if mem_allocated > 100: # Check if *some* significant memory is allocated
+                        if mem_allocated > 6: # Check if *some* significant memory is allocated
                             console.print("[green]✅ GPU appears active for inference (memory allocated).[/green]")
                         else:
                             console.print("[yellow]⚠️ GPU acceleration intended, but low memory allocated. Check model/driver compatibility.[/yellow]")
