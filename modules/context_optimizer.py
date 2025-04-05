@@ -139,6 +139,10 @@ class ContextOptimizer:
         Returns:
             str: Optimized prompt with context
         """
+        # Ensure base_prompt is defined
+        if not base_prompt:
+            base_prompt = "You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task."
+            
         # Check prompt cache first
         cache_key = f"{base_prompt}_{current_task}_{len(chat_memory)}"
         if cache_key in self.prompt_cache:
@@ -149,12 +153,22 @@ class ContextOptimizer:
             
         # Get optimized context - keep last 15 messages for better continuity
         context_messages = []
-        for msg in chat_memory[-15:]:  # Changed from -5 to -15
+        total_tokens = self.estimate_tokens(base_prompt)  # Start with base prompt tokens
+        
+        # Add messages while staying within token limit
+        for msg in reversed(chat_memory[-15:]):  # Process from newest to oldest
             if isinstance(msg, dict) and msg.get('content'):
-                # Add role prefix for clarity
                 role = msg.get('role', 'user')
                 content = msg['content']
-                context_messages.append(f"{role.upper()}: {content}")
+                message = f"{role.upper()}: {content}"
+                message_tokens = self.estimate_tokens(message)
+                
+                # Check if adding this message would exceed token limit
+                if total_tokens + message_tokens > self.max_tokens - self.reserve_tokens:
+                    break
+                    
+                context_messages.insert(0, message)  # Add to start since we're processing in reverse
+                total_tokens += message_tokens
         
         context_str = "\n".join(context_messages)
         
@@ -162,31 +176,42 @@ class ContextOptimizer:
         tool_context_str = ""
         if tool_context:
             tool_context_str = self.format_tool_context(tool_context)
+            tool_tokens = self.estimate_tokens(tool_context_str)
+            if total_tokens + tool_tokens > self.max_tokens - self.reserve_tokens:
+                tool_context_str = ""  # Skip if it would exceed token limit
         
         # Format reasoning context if available
         reasoning_str = ""
         if reasoning_context:
-            # Add target information to reasoning context if available
             if targets:
                 reasoning_context["active_targets"] = targets
             reasoning_str = f"\nReasoning Context:\n{json.dumps(reasoning_context, indent=2)}"
+            reasoning_tokens = self.estimate_tokens(reasoning_str)
+            if total_tokens + reasoning_tokens > self.max_tokens - self.reserve_tokens:
+                reasoning_str = ""  # Skip if it would exceed token limit
         
         # Format follow-up questions if available
         follow_up_str = ""
         if follow_up_questions:
             follow_up_str = f"\nFollow-up Questions:\n" + "\n".join(f"- {q}" for q in follow_up_questions)
+            follow_up_tokens = self.estimate_tokens(follow_up_str)
+            if total_tokens + follow_up_tokens > self.max_tokens - self.reserve_tokens:
+                follow_up_str = ""  # Skip if it would exceed token limit
         
         # Add active targets if any
         targets_str = ""
         if targets:
             targets_str = f"\nActive Targets:\n" + "\n".join(f"- {t}" for t in targets)
+            target_tokens = self.estimate_tokens(targets_str)
+            if total_tokens + target_tokens > self.max_tokens - self.reserve_tokens:
+                targets_str = ""  # Skip if it would exceed token limit
         
         # Create enhanced prompt with all context
         prompt = f"{base_prompt}\n\n"
         
         # Add specific instructions for tool comparisons
         if "between" in current_task.lower() and "tool" in current_task.lower():
-            prompt += """You are a security tool expert. When comparing tools, provide a detailed, structured comparison that includes:
+            comparison_instructions = """You are a security tool expert. When comparing tools, provide a detailed, structured comparison that includes:
 
 1. Overview of each tool's primary purpose and capabilities
 2. Specific advantages and disadvantages of each tool
@@ -201,6 +226,10 @@ class ContextOptimizer:
 
 Format your response in clear sections with bullet points. Be specific and technical in your analysis.
 Do not apologize or give generic responses. Focus on providing actionable information.\n\n"""
+            
+            comparison_tokens = self.estimate_tokens(comparison_instructions)
+            if total_tokens + comparison_tokens <= self.max_tokens - self.reserve_tokens:
+                prompt += comparison_instructions
         
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"
