@@ -790,7 +790,7 @@ def main():
                     
                     # Display the response with clear formatting
                     console.print(f"[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
-                    console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}")
+                    console.print(f"[bold magenta]└─>[/bold magenta] {clean_response}, end")
                     console.print() # Add an empty line after output for better readability
                     
                 except Exception as e:
