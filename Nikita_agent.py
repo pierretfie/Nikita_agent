@@ -466,8 +466,8 @@ intent_analyzer = IntentAnalyzer(OUTPUT_DIR, system_commands)
 
 # Initialize context optimizer - ensure llm exists if needed, or pass None/handle later
 context_optimizer = ContextOptimizer(
-    max_tokens=system_params['context_limit'],
-    reserve_tokens=system_params['max_tokens'] # Assuming reserve_tokens is independent of llm
+    max_tokens=MAX_TOKENS,  # Use the global MAX_TOKENS value (2048)
+    reserve_tokens=512  # Keep a reasonable reserve for the response
 )
 
 # Define a function to get responses with optimized caching
