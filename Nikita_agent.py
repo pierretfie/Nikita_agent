@@ -770,9 +770,8 @@ def main():
                     
                     # Ensure we have a valid response
                     if not response or response.lower().startswith(('i apologize', 'sorry', 'error')):
-                        # Generate a fallback response
-                        fallback_prompt = f"{base_prompt}\n\nTask: {current_task}\nProvide a detailed, helpful response.\nResponse:"
-                        output = get_cached_response(fallback_prompt)
+                        # Generate a fallback response using the same prompt
+                        output = get_cached_response(full_prompt)
                         response = output['choices'][0]['text'].strip()
                     
                     # Filter out reasoning section if present
