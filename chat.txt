@@ -1,11 +1,13 @@
-✅ GPU appears active for inference (memory allocated).
 
-╔══════════════════════════════════════╗
-║     NIKITA 🐺 AI AGENT v1.0      ║
-╚══════════════════════════════════════╝
+Task: hello
+Response:
+---------------------------------
+⠇ 🐺 Reasoning... [1.4s]
+⏱️ 1.5s
 
-✅ Nikita (Offline Operator Mode) Loaded
-✅ Common prompts prefetched successfully
+┌──(NIKITA 🐺)
+└─> Hello! How can I assist you today?
+
 
 ┌──(SUDO)
 └─> explain the best tool for network discovery
@@ -16,8 +18,10 @@ Intent Analysis: {'intent': 'network_contact_query', 'context': {}, 'command': N
 You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task.
 
 Recent Conversation:
+USER: between the tools you mentioned which is the best
+ASSISTANT: The best tool for network discovery depends on your specific needs and requirements. Some popular options include Nmap, Wireshark, and Zmap. These tools can help you identify open ports, discover hosts on a network, and analyze network traffic. It's important to note that some of these tools may require advanced technical knowledge and should be used with caution. If you could provide more details about what you are looking for, I would be happy to recommend the best tool for your needs.
 USER: hello
-USER: get my private ip
+ASSISTANT: Hello! How can I assist you today?
 USER: explain the best tool for network discovery
 
 Reasoning Context:
@@ -66,8 +70,8 @@ Follow-up Questions:
 Task: explain the best tool for network discovery
 Response:
 ---------------------------------
-⠼ 🐺 Reasoning... [4.2s]
-⏱️ 4.3s
+⠴ 🐺 Reasoning... [4.3s]
+⏱️ 4.4s
 
 ┌──(NIKITA 🐺)
 └─> The best tool for network discovery depends on your specific needs and requirements. Some 
@@ -87,6 +91,8 @@ Intent Analysis: {'intent': 'general_query', 'context': {}, 'command': None, 'sh
 You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task.
 
 Recent Conversation:
+USER: hello
+ASSISTANT: Hello! How can I assist you today?
 USER: explain the best tool for network discovery
 ASSISTANT: The best tool for network discovery depends on your specific needs and requirements. Some popular options include Nmap, Wireshark, and Zmap. These tools can help you identify open ports, discover hosts on a network, and analyze network traffic. It's important to note that some of these tools may require advanced technical knowledge and should be used with caution. If you could provide more details about what you are looking for, I would be happy to recommend the best tool for your needs.
 USER: between the tools you mentioned which is the best
@@ -124,8 +130,8 @@ Reasoning Context:
 Task: between the tools you mentioned which is the best
 Response:
 ---------------------------------
-⠙ 🐺 Reasoning... [4.0s]
-⏱️ 4.1s
+⠹ 🐺 Reasoning... [7.3s]
+⏱️ 7.4s
 
 ┌──(NIKITA 🐺)
 └─> The best tool for network discovery depends on your specific needs and requirements. Some 
@@ -135,64 +141,11 @@ tools may require advanced technical knowledge and should be used with caution. 
 more details about what you are looking for, I would be happy to recommend the best tool for your 
 needs.
 
-
-┌──(SUDO)
-└─> between the tools you mentioned which is the best
-
-==================== DEBUG INFO ====================
-Intent Analysis: {'intent': 'general_query', 'context': {}, 'command': None, 'should_execute': False, 'personal_reference': None, 'emotional_context': None, 'technical_context': None, 'response': None, 'targets': [], 'follow_up_suggestions': [], 'answered_context': None}
---- Full Prompt Sent to LLM: ---
-You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task.
-
-Recent Conversation:
-USER: explain the best tool for network discovery
-ASSISTANT: The best tool for network discovery depends on your specific needs and requirements. Some popular options include Nmap, Wireshark, and Zmap. These tools can help you identify open ports, discover hosts on a network, and analyze network traffic. It's important to note that some of these tools may require advanced technical knowledge and should be used with caution. If you could provide more details about what you are looking for, I would be happy to recommend the best tool for your needs.
-USER: between the tools you mentioned which is the best
-
-Reasoning Context:
-{
-  "task_analysis": {
-    "primary_intent": "general_query",
-    "secondary_intents": [],
-    "personal_context": null,
-    "technical_context": {
-      "domain": "general"
-    },
-    "emotional_context": null,
-    "answered_context": null
-  },
-  "response_strategy": {
-    "approach": "informative",
-    "tone": "helpful",
-    "technical_level": "moderate",
-    "follow_up_questions": []
-  },
-  "execution_plan": {
-    "steps": [
-      "understand query",
-      "provide information",
-      "ask clarifying questions"
-    ],
-    "priority": "normal",
-    "dependencies": [],
-    "command": null
-  }
-}
-
-Task: between the tools you mentioned which is the best
-Response:
----------------------------------
-⠙ 🐺 Reasoning... [0.0s]
-⏱️ 0.1s
-
-┌──(NIKITA 🐺)
-└─> The best tool for network discovery depends on your specific needs and requirements. Some 
-popular options include Nmap, Wireshark, and Zmap. These tools can help you identify open ports, 
-discover hosts on a network, and analyze network traffic. It's important to note that some of these 
-tools may require advanced technical knowledge and should be used with caution. If you could provide
-more details about what you are looking for, I would be happy to recommend the best tool for your 
-needs.
+Reasoning: The user is asking for a recommendation on which of the three network discovery tools 
+(Nmap, Wireshark, and Zmap) is the best. The response strategy should be informative and helpful, 
+providing an overview of each tool's capabilities and potential limitations. It's important to note 
+that the choice of tool will depend on the user's specific needs and requirements, so it's important
+to ask clarifying questions if necessary.
 
 
 ┌──(SUDO)
-└─> 
