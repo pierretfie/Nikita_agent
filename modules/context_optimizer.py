@@ -230,23 +230,43 @@ class ContextOptimizer:
         # Create enhanced prompt with all context
         prompt = f"{base_prompt}\n\n"
         
-        # Add specific instructions for tool comparisons only when explicitly comparing tools
-        if ("compare" in current_task.lower() or "between" in current_task.lower()) and "tool" in current_task.lower():
-            # Check if we're actually comparing specific tools
-            tool_names = re.findall(r'\b(nmap|metasploit|hydra|hashcat|gobuster|wireshark|aircrack-ng|burpsuite|sqlmap)\b', current_task.lower())
-            if len(tool_names) >= 2:  # Only add comparison instructions if we're comparing at least 2 specific tools
-                comparison_instructions = """You are a security tool expert. When comparing tools, provide a detailed, structured comparison that includes:
+        # Add specific instructions for any type of comparison
+        if ("compare" in current_task.lower() or "between" in current_task.lower() or "difference" in current_task.lower()):
+            # Extract items being compared using common comparison patterns
+            comparison_patterns = [
+                r'between\s+([^and]+)\s+and\s+([^and]+)',  # between X and Y
+                r'compare\s+([^with]+)\s+with\s+([^with]+)',  # compare X with Y
+                r'compare\s+([^to]+)\s+to\s+([^to]+)',  # compare X to Y
+                r'difference\s+between\s+([^and]+)\s+and\s+([^and]+)',  # difference between X and Y
+                r'([^and]+)\s+vs\s+([^and]+)',  # X vs Y
+                r'([^and]+)\s+versus\s+([^and]+)'  # X versus Y
+            ]
+            
+            items_to_compare = []
+            for pattern in comparison_patterns:
+                matches = re.findall(pattern, current_task.lower())
+                if matches:
+                    # Flatten the matches and clean up the items
+                    items = [item.strip() for match in matches for item in match]
+                    items_to_compare.extend(items)
+                    break
+            
+            if items_to_compare:
+                # Create a more generic comparison instruction based on the items
+                item_type = "items" if len(items_to_compare) > 2 else "tools" if any(item in ["nmap", "metasploit", "hydra", "hashcat", "gobuster", "wireshark", "aircrack-ng", "burpsuite", "sqlmap"] for item in items_to_compare) else "options"
+                
+                comparison_instructions = f"""You are an expert in comparing {item_type}. Provide a detailed, structured comparison that includes:
 
-1. Overview of each tool's primary purpose and capabilities
-2. Specific advantages and disadvantages of each tool
-3. Use cases where each tool excels
-4. Performance and resource requirements
-5. Ease of use and learning curve
-6. Security considerations and best practices
-7. Integration capabilities with other tools
-8. Community support and documentation quality
-9. Cost and licensing considerations
-10. Specific examples of when to use each tool
+1. Overview of each {item_type[:-1]}'s primary purpose and capabilities
+2. Specific advantages and disadvantages
+3. Use cases where each excels
+4. Key differences and similarities
+5. When to use each option
+6. Practical considerations
+7. Integration or compatibility aspects
+8. Support and documentation quality
+9. Cost and resource considerations
+10. Specific examples of when to use each option
 
 Format your response in clear sections with bullet points. Be specific and technical in your analysis.
 Do not apologize or give generic responses. Focus on providing actionable information.\n\n"""
@@ -258,7 +278,7 @@ Do not apologize or give generic responses. Focus on providing actionable inform
                 else:
                     print("Skipping comparison instructions due to token limit")
             else:
-                print("Not adding comparison instructions - no specific tools to compare")
+                print("Not adding comparison instructions - no items to compare found")
         
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"
