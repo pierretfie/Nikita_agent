@@ -16,24 +16,19 @@ DEFAULT_MAX_TOKENS = 2048
 DEFAULT_RESERVE_TOKENS = 512
 
 class ContextOptimizer:
-    def __init__(self, max_tokens=DEFAULT_MAX_TOKENS, reserve_tokens=DEFAULT_RESERVE_TOKENS, 
-                engagement_memory=None, memory_limit=15):
+    def __init__(self, max_tokens=2048, reserve_tokens=512):
         """
         Initialize the context optimizer.
         
         Args:
-            max_tokens (int): Maximum token limit for context window
-            reserve_tokens (int): Tokens to reserve for model response
-            engagement_memory (dict, optional): Dictionary of engagement memory
-            memory_limit (int): Maximum number of messages to keep in memory
+            max_tokens (int): Maximum number of tokens for response generation
+            reserve_tokens (int): Number of tokens to reserve for response
         """
-        self.max_tokens = max_tokens
-        self.reserve_tokens = reserve_tokens
-        self.cache = {}  # Cache for frequently used contexts
-        self.prompt_cache = {}  # Cache for generated prompts
-        self.engagement_memory = engagement_memory or {}
-        self.memory_limit = memory_limit
-        self.tool_context_cache = {}  # Cache for tool contexts
+        self.max_tokens = max_tokens  # Maximum tokens for response generation
+        self.reserve_tokens = reserve_tokens  # Tokens to reserve for response
+        self.context_window = 2048  # Fixed context window size
+        self.prompt_cache = {}
+        self.engagement_memory = None
         
     def format_tool_context(self, tool_context):
         """Format tool context into a readable string for the model"""
@@ -127,17 +122,6 @@ class ContextOptimizer:
                            follow_up_questions=None, tool_context=None):
         """
         Get an optimized prompt with context for the LLM.
-        
-        Args:
-            chat_memory (list): List of chat messages
-            current_task (str): Current user task/query
-            base_prompt (str): Base system prompt/instruction
-            reasoning_context (dict, optional): Context from reasoning engine
-            follow_up_questions (list, optional): List of follow-up questions
-            tool_context (dict, optional): Context about the tool being used
-            
-        Returns:
-            str: Optimized prompt with context
         """
         # Ensure base_prompt is defined
         if not base_prompt:
@@ -146,6 +130,9 @@ class ContextOptimizer:
         # Debug: Print initial token count
         print(f"\n=== Token Usage Debug ===")
         print(f"Base prompt tokens: {self.estimate_tokens(base_prompt)}")
+        print(f"Context window: {self.context_window}")
+        print(f"Max response tokens: {self.max_tokens}")
+        print(f"Reserved tokens: {self.reserve_tokens}")
             
         # Check prompt cache first
         cache_key = f"{base_prompt}_{current_task}_{len(chat_memory)}"
@@ -173,9 +160,9 @@ class ContextOptimizer:
                 message_tokens = self.estimate_tokens(message)
                 chat_tokens += message_tokens
                 
-                # Check if adding this message would exceed token limit
-                if total_tokens + message_tokens > self.max_tokens - self.reserve_tokens:
-                    print(f"Stopping at message {len(context_messages)} due to token limit")
+                # Check if adding this message would exceed context window
+                if total_tokens + message_tokens > self.context_window - self.reserve_tokens:
+                    print(f"Stopping at message {len(context_messages)} due to context window limit")
                     break
                     
                 context_messages.insert(0, message)  # Add to start since we're processing in reverse
@@ -191,9 +178,9 @@ class ContextOptimizer:
             tool_context_str = self.format_tool_context(tool_context)
             tool_tokens = self.estimate_tokens(tool_context_str)
             print(f"Tool context tokens: {tool_tokens}")
-            if total_tokens + tool_tokens > self.max_tokens - self.reserve_tokens:
-                print("Skipping tool context due to token limit")
-                tool_context_str = ""  # Skip if it would exceed token limit
+            if total_tokens + tool_tokens > self.context_window - self.reserve_tokens:
+                print("Skipping tool context due to context window limit")
+                tool_context_str = ""  # Skip if it would exceed context window
         
         # Format reasoning context if available
         reasoning_str = ""
@@ -203,9 +190,9 @@ class ContextOptimizer:
             reasoning_str = f"\nReasoning Context:\n{json.dumps(reasoning_context, indent=2)}"
             reasoning_tokens = self.estimate_tokens(reasoning_str)
             print(f"Reasoning context tokens: {reasoning_tokens}")
-            if total_tokens + reasoning_tokens > self.max_tokens - self.reserve_tokens:
-                print("Skipping reasoning context due to token limit")
-                reasoning_str = ""  # Skip if it would exceed token limit
+            if total_tokens + reasoning_tokens > self.context_window - self.reserve_tokens:
+                print("Skipping reasoning context due to context window limit")
+                reasoning_str = ""  # Skip if it would exceed context window
         
         # Format follow-up questions if available
         follow_up_str = ""
@@ -213,9 +200,9 @@ class ContextOptimizer:
             follow_up_str = f"\nFollow-up Questions:\n" + "\n".join(f"- {q}" for q in follow_up_questions)
             follow_up_tokens = self.estimate_tokens(follow_up_str)
             print(f"Follow-up questions tokens: {follow_up_tokens}")
-            if total_tokens + follow_up_tokens > self.max_tokens - self.reserve_tokens:
-                print("Skipping follow-up questions due to token limit")
-                follow_up_str = ""  # Skip if it would exceed token limit
+            if total_tokens + follow_up_tokens > self.context_window - self.reserve_tokens:
+                print("Skipping follow-up questions due to context window limit")
+                follow_up_str = ""  # Skip if it would exceed context window
         
         # Add active targets if any
         targets_str = ""
@@ -223,9 +210,9 @@ class ContextOptimizer:
             targets_str = f"\nActive Targets:\n" + "\n".join(f"- {t}" for t in targets)
             target_tokens = self.estimate_tokens(targets_str)
             print(f"Targets tokens: {target_tokens}")
-            if total_tokens + target_tokens > self.max_tokens - self.reserve_tokens:
-                print("Skipping targets due to token limit")
-                targets_str = ""  # Skip if it would exceed token limit
+            if total_tokens + target_tokens > self.context_window - self.reserve_tokens:
+                print("Skipping targets due to context window limit")
+                targets_str = ""  # Skip if it would exceed context window
         
         # Create enhanced prompt with all context
         prompt = f"{base_prompt}\n\n"
@@ -273,10 +260,10 @@ Do not apologize or give generic responses. Focus on providing actionable inform
                 
                 comparison_tokens = self.estimate_tokens(comparison_instructions)
                 print(f"Comparison instructions tokens: {comparison_tokens}")
-                if total_tokens + comparison_tokens <= self.max_tokens - self.reserve_tokens:
+                if total_tokens + comparison_tokens <= self.context_window - self.reserve_tokens:
                     prompt += comparison_instructions
                 else:
-                    print("Skipping comparison instructions due to token limit")
+                    print("Skipping comparison instructions due to context window limit")
             else:
                 print("Not adding comparison instructions - no items to compare found")
         
@@ -296,7 +283,8 @@ Do not apologize or give generic responses. Focus on providing actionable inform
         # Print final token count
         final_tokens = self.estimate_tokens(prompt)
         print(f"Final prompt tokens: {final_tokens}")
-        print(f"Token limit: {self.max_tokens}")
+        print(f"Context window: {self.context_window}")
+        print(f"Max response tokens: {self.max_tokens}")
         print(f"Reserved tokens: {self.reserve_tokens}")
         print("===================\n")
         
