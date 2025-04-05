@@ -149,7 +149,7 @@ class ContextOptimizer:
             
         # Get optimized context - keep last 15 messages for better continuity
         context_messages = []
-        for msg in chat_memory[-15:]:  # Changed from -5 to -15
+        for msg in chat_memory[-15:]:
             if isinstance(msg, dict) and msg.get('content'):
                 # Add role prefix for clarity
                 role = msg.get('role', 'user')
@@ -186,7 +186,20 @@ class ContextOptimizer:
         
         # Add specific instructions for tool comparisons
         if "between" in current_task.lower() and "tool" in current_task.lower():
-            prompt += """When comparing tools, provide a detailed comparison including:
+            # Extract tools mentioned in the conversation
+            tools_mentioned = set()
+            for msg in chat_memory[-5:]:  # Look at last 5 messages for tool mentions
+                if isinstance(msg, dict) and msg.get('content'):
+                    content = msg['content'].lower()
+                    for tool in ["nmap", "wireshark", "zmap", "metasploit", "hydra", "hashcat", "gobuster", "aircrack-ng", "burpsuite", "sqlmap"]:
+                        if tool in content:
+                            tools_mentioned.add(tool)
+            
+            if tools_mentioned:
+                tools_list = ", ".join(tools_mentioned)
+                prompt += f"""You are comparing the following tools: {tools_list}
+
+Provide a detailed comparison including:
 1. Specific advantages and disadvantages of each tool
 2. Use cases where each tool excels
 3. Performance and resource requirements
@@ -195,7 +208,22 @@ class ContextOptimizer:
 6. Integration capabilities
 7. Community support and documentation
 
-Format your response in a clear, structured way with bullet points or sections.\n\n"""
+Format your response in a clear, structured way with bullet points or sections.
+Focus on comparing these specific tools rather than providing general information.
+Do not include reasoning or analysis in your response, only the comparison.\n\n"""
+            else:
+                prompt += """Please identify which tools you are comparing from the conversation.
+Then provide a detailed comparison including:
+1. Specific advantages and disadvantages of each tool
+2. Use cases where each tool excels
+3. Performance and resource requirements
+4. Ease of use and learning curve
+5. Security considerations
+6. Integration capabilities
+7. Community support and documentation
+
+Format your response in a clear, structured way with bullet points or sections.
+Do not include reasoning or analysis in your response, only the comparison.\n\n"""
         
         if context_str:
             prompt += f"Recent Conversation:\n{context_str}\n"

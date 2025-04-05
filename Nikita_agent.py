@@ -868,13 +868,24 @@ def main():
                 executor.submit(save_response_to_memory)
                 
                 # Display the response with clear formatting
-                console.print(f"[bold magenta]┌──(NIKITA ��)[/bold magenta]")
+                console.print(f"[bold magenta]┌──(NIKITA 🐺)[/bold magenta]")
                 
-                # Filter out reasoning section if present
+                # Filter out reasoning section and other internal sections
                 response_lines = response.split('\n')
                 filtered_response = []
+                skip_next = False
+                
                 for line in response_lines:
-                    if not line.startswith('Reasoning:'):
+                    # Skip lines that indicate internal sections
+                    if any(line.lower().startswith(x) for x in ['reasoning:', 'analysis:', 'internal:', 'debug:', 'task:', 'response:']):
+                        skip_next = True
+                        continue
+                    if skip_next:
+                        skip_next = False
+                        continue
+                        
+                    # Skip empty lines after filtering
+                    if line.strip():
                         filtered_response.append(line)
                 
                 # Join the filtered response and display
