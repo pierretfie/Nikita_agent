@@ -17,7 +17,7 @@ DEFAULT_RESERVE_TOKENS = 512
 
 class ContextOptimizer:
     def __init__(self, max_tokens=DEFAULT_MAX_TOKENS, reserve_tokens=DEFAULT_RESERVE_TOKENS, 
-                engagement_memory=None, memory_limit=20):
+                engagement_memory=None, memory_limit=15):
         """
         Initialize the context optimizer.
         
@@ -100,15 +100,15 @@ class ContextOptimizer:
         # Faster relevance scoring - avoid complex calculations
         scored_messages = []
         
-        # Focus on just the last 3 messages for faster processing
-        if len(recent_messages) <= 3:
-            # Just return all messages if 3 or fewer
+        # Focus on just the last 15 messages for faster processing
+        if len(recent_messages) <= 15:
+            # Just return all messages if 15 or fewer
             relevant_msgs = [msg['content'] for msg in recent_messages if isinstance(msg, dict) and msg.get('content')]
             self.cache[cache_key] = relevant_msgs
             return relevant_msgs
             
-        # Get last 3 messages directly - fast path optimization
-        relevant_msgs = [msg['content'] for msg in recent_messages[-3:] 
+        # Get last 15 messages directly - fast path optimization
+        relevant_msgs = [msg['content'] for msg in recent_messages[-15:] 
                          if isinstance(msg, dict) and msg.get('content')]
         
         # Cache the result

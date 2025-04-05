@@ -727,7 +727,7 @@ def main():
 
             # Use context optimizer to get optimized prompt
             full_prompt = context_optimizer.get_optimized_prompt(
-                chat_memory=chat_memory[-3:],
+                chat_memory=chat_memory[-15:],
                 current_task=user_input,
                 base_prompt="You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task.",
                 reasoning_context=reasoning_result.get("reasoning", {}),

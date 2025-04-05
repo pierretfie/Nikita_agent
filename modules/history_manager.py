@@ -238,7 +238,7 @@ def get_input_with_history():
         console.print(f"\n[yellow]Error reading input: {e}[/yellow]")
         return ""
 
-def add_to_chat_memory(chat_memory, role, content, memory_limit=20):
+def add_to_chat_memory(chat_memory, role, content, memory_limit=15):
     """
     Add a message to chat memory with timestamp.
     
