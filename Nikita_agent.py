@@ -377,7 +377,7 @@ with suppress_stderr():
                 
                 # --- CORRECTED SECTION ---
                 # Set n_gpu_layers based on device source and llama compatibility
-                if device_info.get('source') == 'cuda' and device_info.get('llama_compatible', False):
+                if device_info.get('source').lower() == 'cuda' and device_info.get('llama_compatible', False):
                     # Use GPU for compatible CUDA devices
                     assigned_layers = device_info.get('llama_layers_assigned', 0)
                     console.print(f"[green]  • Using GPU acceleration: {assigned_layers if assigned_layers != 0 else 'All'} layers[/green]")
