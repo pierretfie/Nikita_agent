@@ -100,14 +100,15 @@ class ContextOptimizer:
         # Faster relevance scoring - avoid complex calculations
         scored_messages = []
         
-        # Return all messages if within memory limit
-        if len(recent_messages) <= self.memory_limit:
+        # Focus on just the last 3 messages for faster processing
+        if len(recent_messages) <= 3:
+            # Just return all messages if 3 or fewer
             relevant_msgs = [msg['content'] for msg in recent_messages if isinstance(msg, dict) and msg.get('content')]
             self.cache[cache_key] = relevant_msgs
             return relevant_msgs
             
-        # Get last memory_limit messages directly - fast path optimization
-        relevant_msgs = [msg['content'] for msg in recent_messages[-self.memory_limit:] 
+        # Get last 3 messages directly - fast path optimization
+        relevant_msgs = [msg['content'] for msg in recent_messages[-3:] 
                          if isinstance(msg, dict) and msg.get('content')]
         
         # Cache the result
@@ -146,9 +147,9 @@ class ContextOptimizer:
         # Extract targets from memory if available
         targets = self.engagement_memory.get("targets", []) if self.engagement_memory else []
             
-        # Get optimized context - use all messages up to memory limit
+        # Get optimized context - keep last 5 messages for better continuity
         context_messages = []
-        for msg in chat_memory[-self.memory_limit:]:
+        for msg in chat_memory[-5:]:
             if isinstance(msg, dict) and msg.get('content'):
                 # Add role prefix for clarity
                 role = msg.get('role', 'user')

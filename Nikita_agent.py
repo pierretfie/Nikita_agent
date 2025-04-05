@@ -60,7 +60,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 MAX_TOKENS = 1024  #  from 512
 TEMPERATURE = 0.3  # Reduced from 0.7 for more focused responses
 # Maximum number of messages to keep in memory
-MEMORY_LIMIT = 15  # Set a reasonable limit for memory usage
+MEMORY_LIMIT = 20  # Set a reasonable limit for memory usage
 
 # Get system parameters for model initialization
 system_params = get_dynamic_params()
@@ -727,9 +727,9 @@ def main():
 
             # Use context optimizer to get optimized prompt
             full_prompt = context_optimizer.get_optimized_prompt(
-                chat_memory=chat_memory[-15:],  # Increased from 3 to 15 messages
+                chat_memory=chat_memory[-3:],
                 current_task=user_input,
-                base_prompt="You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task. Provide specific, detailed responses that directly address the user's question. Avoid generic responses and ensure each answer is unique and contextual.",
+                base_prompt="You are Nikita 🐺, an Offline AI Security Assistant. Focus on the current task.",
                 reasoning_context=reasoning_result.get("reasoning", {}),
                 follow_up_questions=reasoning_result.get("follow_up_questions", []),
                 tool_context=tool_manager.get_tool_context(reasoning_result.get("tool_name")) if reasoning_result.get("tool_name") else None
